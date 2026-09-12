@@ -4,5 +4,52 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   devServer: {
     port: 4300
+  },
+  modules: ['vuetify-nuxt-module', 'nuxt-auth-utils'],
+  css: ['~/assets/css/main.css'],
+  vuetify: {
+    moduleOptions: {
+      enableRules: false,
+      prefixComposables: ['useLayout']
+    },
+    vuetifyOptions: {
+      theme: {
+        defaultTheme: 'light'
+      },
+      defaults: {
+        VAppBar: {
+          color: 'grey-lighten-3',
+          flat: true
+        },
+        VCard: {
+          rounded: 'xl'
+        }
+      },
+      icons: {
+        defaultSet: 'mdi'
+      },
+      locale: {
+        locale: 'zhHans',
+        fallback: 'en'
+      },
+      localeMessages: 'zhHans'
+    }
+  },
+  runtimeConfig: {
+    resendApiKey: '',
+    mailFrom: '',
+    adminEmails: '',
+    databasePath: './.data/mgl.sqlite',
+    session: {
+      name: 'mgl-session',
+      maxAge: 60 * 60 * 24 * 7,
+      cookie: {
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    },
+    public: {
+      siteUrl: 'http://localhost:4300'
+    }
   }
 })
