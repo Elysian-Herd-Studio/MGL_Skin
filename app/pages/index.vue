@@ -29,7 +29,7 @@ function resetFilters() {
   selectedKind.value = ''
 }
 
-const { data, pending, error, refresh } = await useFetch<{ items: SkinPreset[] }>('/api/skins', { query })
+const { data, pending, error, refresh } = await useFetch<{ items: SkinPreset[] }>('/api/skins', { key: 'skin-library', query })
 const presets = computed(() => (data.value?.items ?? []).map(item => ({
   ...item, config: parsePonyConfig(item.data)
 })))

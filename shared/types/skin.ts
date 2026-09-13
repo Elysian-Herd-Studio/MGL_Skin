@@ -8,5 +8,13 @@ export interface SkinPreset {
 }
 
 export interface SkinPresetDetail extends SkinPreset {
+  userId: number
   avatarUrl: string | null
+}
+
+export interface SkinPresetPage {
+  items: SkinPreset[]
+  total: number
+  page: number
+  limit: number
 }

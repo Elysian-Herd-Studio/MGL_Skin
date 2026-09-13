@@ -8,12 +8,16 @@ definePageMeta({
 })
 
 const route = useRoute()
-const { data: preset, pending, error, refresh } = await useFetch<SkinPresetDetail>(() => `/api/skins/${route.params.id}`)
+const { user } = useUserSession()
+const { data: preset, pending, error, refresh } = await useFetch<SkinPresetDetail>(() => `/api/skins/${route.params.id}`, {
+  key: computed(() => `skin-preset:${route.params.id}`)
+})
 if (error.value?.statusCode === 404) {
   throw createError({ statusCode: 404, statusMessage: '预设不存在或已被删除', fatal: true })
 }
 
 const config = computed(() => preset.value ? parsePonyConfig(preset.value.data) : null)
+const isOwner = computed(() => Boolean(preset.value && user.value?.id === preset.value.userId))
 
 useSeoMeta({
   title: () => preset.value ? `${preset.value.name} · MGL Skin` : '预设详情 · MGL Skin',
@@ -64,6 +68,10 @@ function formatDate(value: string) {
             <dt>发布时间</dt><dd>{{ formatDate(preset.created_at) }}</dd>
             <dt>更新时间</dt><dd>{{ formatDate(preset.updated_at) }}</dd>
           </dl>
+
+          <v-btn v-if="isOwner" to="/my-skins" variant="tonal" prepend-icon="mdi-image-edit-outline" class="mt-6">
+            管理我的皮肤
+          </v-btn>
         </div>
       </v-col>
     </v-row>

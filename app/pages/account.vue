@@ -191,6 +191,7 @@ async function logout() {
     </v-card-text>
 
     <v-card-actions class="flex-wrap px-4 pb-4">
+      <v-btn to="/my-skins" variant="tonal" prepend-icon="mdi-image-multiple-outline">我的皮肤</v-btn>
       <v-btn v-if="user?.role === 'admin'" to="/admin/users" variant="tonal" prepend-icon="mdi-account-cog">
         用户管理
       </v-btn>

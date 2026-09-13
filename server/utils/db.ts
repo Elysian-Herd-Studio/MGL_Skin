@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS skin_presets (
 );
 
 CREATE INDEX IF NOT EXISTS idx_skin_presets_updated ON skin_presets(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_skin_presets_user_updated ON skin_presets(user_id, updated_at DESC, id DESC);
 
 CREATE TABLE IF NOT EXISTS minecraft_auth_codes (
   code_hash  TEXT PRIMARY KEY,

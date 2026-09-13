@@ -53,6 +53,7 @@ async function logout() {
           </template>
           <v-list>
             <v-list-item to="/account" prepend-icon="mdi-account-details" title="个人资料" />
+            <v-list-item to="/my-skins" prepend-icon="mdi-image-multiple-outline" title="我的皮肤" />
             <v-list-item prepend-icon="mdi-logout" title="退出登录" @click="logout" />
           </v-list>
         </v-menu>

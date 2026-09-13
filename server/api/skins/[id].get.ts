@@ -8,7 +8,7 @@ export default defineEventHandler((event) => {
   }
 
   const preset = useDatabase().prepare(`
-    SELECT skin_presets.id, skin_presets.name, skin_presets.data,
+    SELECT skin_presets.id, skin_presets.name, skin_presets.data, skin_presets.user_id AS userId,
       skin_presets.created_at, skin_presets.updated_at, users.username,
       CASE WHEN user_avatars.version IS NOT NULL
         THEN '/api/users/' || users.id || '/avatar?v=' || user_avatars.version
