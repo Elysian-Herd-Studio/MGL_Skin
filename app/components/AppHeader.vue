@@ -18,8 +18,8 @@ async function logout() {
     <div class="app-header__actions">
       <template v-if="loggedIn">
         <v-btn to="/" variant="text" prepend-icon="mdi-home">首页</v-btn>
-        <v-btn v-if="user?.role === 'admin'" to="/admin/users" variant="text" prepend-icon="mdi-account-cog">
-          用户管理
+        <v-btn v-if="user?.role === 'admin'" to="/admin" variant="text" prepend-icon="mdi-view-dashboard-outline">
+          控制台
         </v-btn>
         <v-menu>
           <template #activator="{ props }">

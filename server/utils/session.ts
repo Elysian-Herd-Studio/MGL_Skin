@@ -55,7 +55,7 @@ export function syncAdminRole(user: UserRecord) {
 }
 
 export async function requireAdmin(event: H3Event) {
-  const { user } = await requireUserSession(event)
+  const user = await requireCurrentUser(event)
 
   if (user.role !== 'admin') {
     throw createError({

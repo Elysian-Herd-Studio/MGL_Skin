@@ -3,6 +3,11 @@ import { dirname, resolve } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 
 const schema = `
+CREATE TABLE IF NOT EXISTS app_settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS users (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   username        TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -71,9 +76,12 @@ function createDatabase() {
   const file = resolve(process.cwd(), databasePath)
   mkdirSync(dirname(file), { recursive: true })
   const db = new DatabaseSync(file)
+  db.exec('PRAGMA busy_timeout = 5000')
   db.exec('PRAGMA journal_mode = WAL')
   db.exec('PRAGMA foreign_keys = ON')
   db.exec(schema)
+  db.prepare(`INSERT OR IGNORE INTO app_settings (key, value)
+    SELECT 'initialized_at', datetime('now') WHERE EXISTS (SELECT 1 FROM users)`).run()
   return db
 }
 

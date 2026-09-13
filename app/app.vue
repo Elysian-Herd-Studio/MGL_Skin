@@ -5,6 +5,6 @@
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
-    <AuthDialog />
+    <AuthDialog v-if="$route.path !== '/setup'" />
   </v-app>
 </template>

@@ -63,6 +63,7 @@ export default defineNuxtConfig({
     adminEmails: '',
     databasePath: './.data/mgl.sqlite',
     session: {
+      password: '',
       name: 'mgl-session',
       maxAge: 60 * 60 * 24 * 7,
       cookie: {

@@ -1,14 +1,9 @@
 import { Resend } from 'resend'
-
-let client: Resend | undefined
-
-function getClient() {
-  const { resendApiKey } = useRuntimeConfig()
-  return resendApiKey ? (client ??= new Resend(resendApiKey)) : undefined
-}
+import { createTransport } from 'nodemailer'
+import type { MailSettings } from '../../shared/types/settings'
 
 function siteUrl() {
-  return useRuntimeConfig().public.siteUrl.replace(/\/+$/, '')
+  return getSiteSettings().siteUrl.replace(/\/+$/, '')
 }
 
 function escapeHtml(value: string) {
@@ -21,9 +16,10 @@ function escapeHtml(value: string) {
 
 function shell(title: string, paragraphs: string[], action?: { label: string, url: string }) {
   const body = paragraphs.map(text => `<p style="margin:0 0 16px">${text}</p>`).join('')
+  const actionUrl = action ? escapeHtml(action.url) : ''
   const button = action
-    ? `<p style="margin:24px 0"><a href="${action.url}" style="display:inline-block;padding:12px 24px;background:#1867c0;color:#fff;border-radius:4px;text-decoration:none">${action.label}</a></p>
-       <p style="margin:0 0 16px;color:#666;font-size:13px">如果按钮无法点击，请复制以下链接到浏览器打开：<br>${action.url}</p>`
+    ? `<p style="margin:24px 0"><a href="${actionUrl}" style="display:inline-block;padding:12px 24px;background:#1867c0;color:#fff;border-radius:4px;text-decoration:none">${action.label}</a></p>
+       <p style="margin:0 0 16px;color:#666;font-size:13px">如果按钮无法点击，请复制以下链接到浏览器打开：<br>${actionUrl}</p>`
     : ''
 
   return `<!doctype html>
@@ -38,29 +34,59 @@ function shell(title: string, paragraphs: string[], action?: { label: string, ur
 </html>`
 }
 
-async function sendMail(input: { to: string, subject: string, html: string, link?: string }) {
-  const { mailFrom } = useRuntimeConfig()
-  const resend = getClient()
-
-  if (!resend) {
-    console.info(`[mail] 未配置 NUXT_RESEND_API_KEY，邮件改为输出到控制台\n  收件人: ${input.to}\n  主题: ${input.subject}${input.link ? `\n  链接: ${input.link}` : ''}`)
-    return
+async function sendMail(input: { to: string, subject: string, html: string }, settings: MailSettings = getSiteSettings().mail) {
+  if (!settings.from || (settings.transport === 'api' ? !settings.apiKey : !settings.smtpHost)) {
+    throw createError({ statusCode: 503, statusMessage: '邮件服务尚未配置，请联系管理员', data: { code: 'MAIL_NOT_CONFIGURED' } })
   }
 
   try {
-    const { error } = await resend.emails.send({
-      from: mailFrom,
-      to: input.to,
-      subject: input.subject,
-      html: input.html
-    })
-
-    if (error) {
-      throw new Error(error.message)
+    const message = { from: settings.from, to: [input.to], subject: input.subject, html: input.html }
+    if (settings.transport === 'smtp') {
+      const transport = createTransport({
+        host: settings.smtpHost,
+        port: settings.smtpPort,
+        secure: settings.smtpSecurity === 'tls',
+        requireTLS: settings.smtpSecurity === 'starttls',
+        ignoreTLS: settings.smtpSecurity === 'none',
+        auth: settings.smtpUsername ? { user: settings.smtpUsername, pass: settings.smtpPassword } : undefined,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 20000,
+        disableFileAccess: true,
+        disableUrlAccess: true
+      })
+      try {
+        const result = await transport.sendMail(message)
+        if (!result.accepted.length) throw new Error('SMTP rejected the recipient')
+      } finally {
+        transport.close()
+      }
+      return
     }
-  } catch (cause) {
-    console.error('[mail] 发送失败，邮件改为输出到控制台', cause)
-    console.info(`  收件人: ${input.to}\n  主题: ${input.subject}${input.link ? `\n  链接: ${input.link}` : ''}`)
+
+    if (settings.preset === 'resend') {
+      const { error } = await new Resend(settings.apiKey).emails.send(message)
+      if (error) throw new Error(error.message)
+      return
+    }
+
+    const result = await $fetch<{ error?: unknown }>(settings.apiUrl, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${settings.apiKey}` },
+      body: message,
+      timeout: 15000,
+      retry: 0,
+      redirect: 'error'
+    })
+    if (result?.error) throw new Error('Mail API rejected the message')
+  } catch {
+    throw createError({
+      statusCode: 502,
+      statusMessage: settings.transport === 'smtp'
+        ? '邮件发送失败，请检查 SMTP 地址、端口、凭据和发件人设置'
+        : '邮件发送失败，请检查 API 地址、密钥和发件人设置',
+      data: { code: 'MAIL_SEND_FAILED' }
+    })
   }
 }
 
@@ -70,7 +96,6 @@ export function sendVerificationEmail(user: { username: string, email: string },
   return sendMail({
     to: user.email,
     subject: '验证你的邮箱',
-    link: url,
     html: shell('验证你的邮箱', [
       `${escapeHtml(user.username)}，欢迎加入 MGL Skin。`,
       '请点击下面的按钮完成邮箱验证，链接 24 小时内有效。',
@@ -85,7 +110,6 @@ export function sendPasswordResetEmail(user: { username: string, email: string }
   return sendMail({
     to: user.email,
     subject: '重置你的密码',
-    link: url,
     html: shell('重置你的密码', [
       `${escapeHtml(user.username)}，我们收到了重置密码的请求。`,
       '请点击下面的按钮设置新密码，链接 1 小时内有效。',
@@ -104,4 +128,12 @@ export function sendEmailInUseNotice(user: { username: string, email: string }) 
       '如果这不是你本人的操作，忽略本邮件即可。'
     ])
   })
+}
+
+export function sendTestEmail(to: string, settings: MailSettings) {
+  return sendMail({
+    to,
+    subject: 'MGL Skin 邮件配置测试',
+    html: shell('邮件配置测试', ['如果你收到了这封邮件，说明当前邮件发送配置可以正常使用。'])
+  }, settings)
 }

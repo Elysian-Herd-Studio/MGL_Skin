@@ -1,4 +1,8 @@
 export default defineNitroPlugin(() => {
+  const config = useRuntimeConfig()
+  const passwordEnv = `${config.nitro?.envPrefix || 'NUXT_'}SESSION_PASSWORD`
+  process.env[passwordEnv] ||= config.session.password || getSiteSessionPassword()
+
   sessionHooks.hook('fetch', async (session, event) => {
     const user = session.user
 
