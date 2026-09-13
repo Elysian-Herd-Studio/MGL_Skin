@@ -17,12 +17,12 @@ async function logout() {
 
     <template v-if="loggedIn">
       <v-btn to="/" variant="text" prepend-icon="mdi-home">首页</v-btn>
-      <v-btn v-if="user?.role === 'admin'" to="/admin/users" variant="text" prepend-icon="mdi-account-cog">
+      <v-btn v-if="user?.role === 'admin'" to="/admin/users" variant="text" prepend-icon="mdi-account-cog" class="ml-2">
         用户管理
       </v-btn>
       <v-menu>
         <template #activator="{ props }">
-          <v-btn v-bind="props" variant="text" prepend-icon="mdi-account">{{ user?.username }}</v-btn>
+          <v-btn v-bind="props" variant="text" prepend-icon="mdi-account" class="ml-2">{{ user?.username }}</v-btn>
         </template>
         <v-list>
           <v-list-item to="/account" prepend-icon="mdi-account-details" title="个人资料" />
