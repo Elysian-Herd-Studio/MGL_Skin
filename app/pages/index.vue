@@ -102,7 +102,7 @@ const presets = computed(() => (data.value?.items ?? []).map(item => ({
       </div>
     </v-alert>
 
-    <v-sheet v-else-if="!presets.length" class="text-center pa-12" rounded="xl" border>
+    <v-sheet v-else-if="!presets.length" class="text-center pa-12" rounded="xl">
       <v-icon :icon="hasFilters ? 'mdi-magnify-close' : 'mdi-image-multiple-outline'" size="48" class="text-medium-emphasis mb-4" />
       <h2 class="text-h6 mb-2">{{ hasFilters ? '没有找到匹配的皮肤' : '暂无皮肤' }}</h2>
       <p class="text-body-2 text-medium-emphasis mb-0">
