@@ -2,7 +2,7 @@
   <div>
     <AppHeader />
     <v-main>
-      <v-container>
+      <v-container class="site-container">
         <slot />
       </v-container>
     </v-main>

@@ -1,5 +1,7 @@
 export type ManePart = 'frontMane' | 'backMane' | 'tail'
 
+export const PONY_KINDS = ['陆马', '独角兽', '飞马', '天角兽'] as const
+
 const defaults = {
   frontManeStyle: '01',
   backManeStyle: '01',

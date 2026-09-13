@@ -21,6 +21,9 @@ export default defineNuxtConfig({
           color: 'grey-lighten-3',
           flat: true
         },
+        VBtn: {
+          rounded: 'xl'
+        },
         VCard: {
           rounded: 'xl',
           elevation: 0
