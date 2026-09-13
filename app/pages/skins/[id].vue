@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SkinPreset } from '../../../shared/types/skin'
+import type { SkinPresetDetail } from '../../../shared/types/skin'
 import { parsePonyConfig } from '../../../shared/utils/pony'
 
 definePageMeta({
@@ -8,7 +8,7 @@ definePageMeta({
 })
 
 const route = useRoute()
-const { data: preset, pending, error, refresh } = await useFetch<SkinPreset>(() => `/api/skins/${route.params.id}`)
+const { data: preset, pending, error, refresh } = await useFetch<SkinPresetDetail>(() => `/api/skins/${route.params.id}`)
 if (error.value?.statusCode === 404) {
   throw createError({ statusCode: 404, statusMessage: '预设不存在或已被删除', fatal: true })
 }
@@ -51,11 +51,15 @@ function formatDate(value: string) {
 
       <v-col cols="12" md="4">
         <div class="preset-details pa-1 pa-sm-3">
-          <h1 class="text-h4 font-weight-bold mb-6">{{ preset.name }}</h1>
+          <h1 class="text-h4 font-weight-bold mb-4">{{ preset.name }}</h1>
+
+          <div class="d-flex align-center ga-3 mb-6" role="group" aria-label="分享者">
+            <UserAvatar :src="preset.avatarUrl" :name="preset.username" :size="40" class="flex-shrink-0" />
+            <span class="text-body-1 font-weight-medium">{{ preset.username }}</span>
+          </div>
 
           <h2 class="text-subtitle-1 font-weight-bold mb-3">基本信息</h2>
           <dl class="preset-facts text-body-2">
-            <dt>分享者</dt><dd>{{ preset.username }}</dd>
             <dt>预设编号</dt><dd>#{{ preset.id }}</dd>
             <dt>发布时间</dt><dd>{{ formatDate(preset.created_at) }}</dd>
             <dt>更新时间</dt><dd>{{ formatDate(preset.updated_at) }}</dd>
