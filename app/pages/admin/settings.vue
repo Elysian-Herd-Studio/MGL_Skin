@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { SiteSettings, SiteSettingsView } from '../../../shared/types/settings'
+import { createDefaultCaptchaSettings } from '../../../shared/utils/captcha'
 import { createDefaultMailSettings, isValidSiteUrl } from '../../../shared/utils/settings'
 
 useSeoMeta({ title: '站点设置 · MGL Skin', robots: 'noindex, nofollow' })
 
 const { data, error: loadError, refresh } = await useFetch<SiteSettingsView>('/api/admin/settings')
 const form = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(null)
-const settings = ref<SiteSettings>({ siteUrl: '', mail: createDefaultMailSettings() })
+const settings = ref<SiteSettings>({ siteUrl: '', mail: createDefaultMailSettings(), captcha: createDefaultCaptchaSettings() })
 const saving = ref(false)
 const testing = ref(false)
 const busy = computed(() => saving.value || testing.value)
@@ -14,7 +15,11 @@ const error = ref('')
 const success = ref('')
 
 watch(data, value => {
-  if (value) settings.value = { siteUrl: value.siteUrl, mail: { ...value.mail, apiKey: '', smtpPassword: '' } }
+  if (value) settings.value = {
+    siteUrl: value.siteUrl,
+    mail: { ...value.mail, apiKey: '', smtpPassword: '' },
+    captcha: { ...value.captcha, secretKey: '' }
+  }
 }, { immediate: true })
 
 async function save() {
@@ -26,7 +31,7 @@ async function save() {
 
   try {
     data.value = await $fetch<SiteSettingsView>('/api/admin/settings', { method: 'PUT', body: settings.value, retry: false })
-    success.value = '设置已保存，新的邮件将使用此配置。'
+    success.value = '设置已保存并生效。'
   } catch (cause) {
     error.value = apiErrorMessage(cause)
   } finally {
@@ -56,7 +61,7 @@ async function testEmail() {
   <div class="admin-settings">
     <header class="mb-8">
       <h1 class="text-h4 font-weight-bold mb-3">站点设置</h1>
-      <p class="text-body-1 text-medium-emphasis">管理对外地址与邮件服务，修改后即时生效。</p>
+      <p class="text-body-1 text-medium-emphasis">管理对外地址、邮件服务和登录验证码，修改后即时生效。</p>
     </header>
 
     <v-alert v-if="loadError" type="error" variant="tonal" rounded="xl">
@@ -88,6 +93,13 @@ async function testEmail() {
           <h2 class="text-h6 mb-2">邮件发送</h2>
           <p class="text-body-2 text-medium-emphasis mb-6">已保存的密钥和密码不会显示。保留原连接设置并留空凭据时，会沿用已保存的值。</p>
           <MailSettingsForm v-model="settings.mail" :saved="data.mail" :disabled="busy" />
+        </v-card-text>
+      </v-card>
+
+      <v-card class="mb-6">
+        <v-card-text class="pa-6">
+          <h2 class="text-h6 mb-2">登录验证码</h2>
+          <CaptchaSettingsForm v-model="settings.captcha" :saved="data.captcha" :disabled="busy" />
         </v-card-text>
       </v-card>
 

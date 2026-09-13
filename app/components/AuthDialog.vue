@@ -11,8 +11,10 @@ const meta: Record<AuthView, { title: string, subtitle: string }> = {
 }
 
 const shownView = ref<AuthView | null>(null)
+const captchaActive = ref(false)
 
 watch(view, value => {
+  if (value !== 'login') captchaActive.value = false
   if (value) {
     shownView.value = value
   }
@@ -26,7 +28,7 @@ function switchTo(next: AuthView) {
 }
 
 function onModelValue(value: boolean) {
-  if (!value) {
+  if (!value && !captchaActive.value) {
     close()
   }
 }
@@ -47,14 +49,43 @@ async function onSuccess() {
   <v-dialog
     :model-value="Boolean(view)"
     max-width="440"
+    :persistent="captchaActive"
+    :retain-focus="!captchaActive"
+    :capture-focus="!captchaActive"
     :close-on-back="false"
     @update:model-value="onModelValue"
     @after-leave="onAfterLeave"
   >
-    <AuthCard v-if="shownView" :title="title" :subtitle="subtitle">
-      <LoginForm v-if="shownView === 'login'" @success="onSuccess" @switch="switchTo" />
+    <AuthCard
+      v-if="shownView"
+      :title="title"
+      :subtitle="subtitle"
+      class="auth-dialog__card"
+      :class="{ 'auth-dialog__card--receded': captchaActive }"
+      :inert="captchaActive || undefined"
+      :aria-hidden="captchaActive || undefined"
+    >
+      <LoginForm v-if="shownView === 'login'" :active="view === 'login'" @captcha="captchaActive = $event" @success="onSuccess" @switch="switchTo" />
       <RegisterForm v-else-if="shownView === 'register'" @switch="switchTo" />
       <ForgotPasswordForm v-else @switch="switchTo" />
     </AuthCard>
   </v-dialog>
 </template>
+
+<style scoped>
+.auth-dialog__card {
+  transform-origin: center;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms ease;
+}
+
+.auth-dialog__card--receded {
+  transform: translateY(-16px) scale(0.9);
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-dialog__card {
+    transition: none;
+  }
+}
+</style>

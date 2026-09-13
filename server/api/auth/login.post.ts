@@ -1,9 +1,10 @@
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ email?: string, password?: string }>(event)
+  const body = await readBody<{ email?: string, password?: string, captcha?: unknown }>(event)
   const email = normalizeEmail(String(body?.email ?? ''))
   const password = String(body?.password ?? '')
 
   enforceRateLimit(event, 'login', 10, 15 * 60, email || 'anonymous')
+  await verifyLoginCaptcha(email, body?.captcha)
 
   const user = findUserByEmail(email)
   const valid = user ? await verifyPassword(user.passwordHash, password) : false

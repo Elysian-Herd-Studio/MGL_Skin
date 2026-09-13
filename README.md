@@ -1,6 +1,6 @@
 # MGL Skin
 
-基于 Nuxt、Vuetify 和 SQLite 的小马皮肤库，支持动态预览、个人资料和管理员控制台。
+基于 Nuxt、Vuetify 和 SQLite 的小马皮肤库，支持动态预览、个人资料、登录验证码和管理员控制台。
 
 ## 安装与运行
 
@@ -45,9 +45,27 @@ node .output/server/index.mjs
 
 - `/admin`：查看用户、管理员、共享皮肤、待验证邮箱数量及邮件配置状态。
 - `/admin/users`：搜索用户、调整用户组、修改邮箱验证状态和删除用户。
-- `/admin/settings`：修改站点地址、邮件服务，并向当前管理员邮箱发送测试邮件。
+- `/admin/settings`：修改站点地址、邮件服务和登录验证码，并向当前管理员邮箱发送测试邮件。
 
 控制台页面和管理接口均校验管理员权限。接口从数据库读取当前用户组，管理员被降级后旧会话也无法继续调用管理接口。
+
+## 登录验证码
+
+在 `/admin/settings` 的“登录验证码”中开启验证、选择服务商，并填写对应的 Site Key 和 Secret Key。默认关闭，已有站点升级后也保持关闭；保存后对新的登录请求生效。
+
+| 服务商 | 配置要求 |
+| --- | --- |
+| Google reCAPTCHA | 使用 v2“我不是机器人”复选框的站点密钥和服务端密钥 |
+| BotFlush | 在 BotFlush 控制台添加站点，取得 `site_key` 和 `secret_key` |
+| Cloudflare Turnstile | 使用 Turnstile 组件的 Site Key 和 Secret Key |
+
+在服务商中添加本站域名，并与站点设置中的对外地址保持一致。reCAPTCHA 和 Turnstile 的验证结果会校验该域名，Turnstile 还会校验登录动作和请求编号。
+
+提交登录表单后，登录窗口缩小后移，验证码在独立窗口中展示；完成验证后自动继续登录。取消验证会恢复登录窗口并保留输入。组件加载失败、验证过期或服务商不可用时可以重新验证。
+
+验证码始终在服务端校验。每次验证请求生成 256 位随机编号，绑定当前登录邮箱和验证码配置，5 分钟内有效。BotFlush 的 Widget 和 Siteverify 均传入 `action: login` 与同一 `request_id`；验证成功后在数据库中原子消费编号，重复使用会被拒绝。登录凭据校验失败后也需要重新完成验证码。
+
+Secret Key 只存储在服务端，不会返回浏览器。服务商和 Site Key 不变时，将 Secret Key 留空可保留原密钥。
 
 ## 邮件配置
 
@@ -77,4 +95,4 @@ Resend 发件地址需属于已验证域名。测试地址 `onboarding@resend.de
 
 测试邮件使用表单中的当前配置，不会自动保存设置。发送失败会显示错误，不会以控制台输出代替发送成功。
 
-数据库中的设置优先于旧版 `NUXT_RESEND_API_KEY`、`NUXT_MAIL_FROM` 和 `NUXT_PUBLIC_SITE_URL` 环境变量。SQLite 同时保存账户、邮件凭据和自动生成的会话密钥，应放在非公开的持久化目录中。
+数据库中的设置优先于旧版 `NUXT_RESEND_API_KEY`、`NUXT_MAIL_FROM` 和 `NUXT_PUBLIC_SITE_URL` 环境变量。SQLite 同时保存账户、邮件及验证码凭据和自动生成的会话密钥，应放在非公开的持久化目录中。

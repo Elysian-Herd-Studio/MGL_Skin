@@ -53,6 +53,16 @@ CREATE TABLE IF NOT EXISTS skin_presets (
 CREATE INDEX IF NOT EXISTS idx_skin_presets_updated ON skin_presets(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_skin_presets_user_updated ON skin_presets(user_id, updated_at DESC, id DESC);
 
+CREATE TABLE IF NOT EXISTS login_captcha_challenges (
+  request_hash  TEXT PRIMARY KEY,
+  email_hash    TEXT NOT NULL,
+  settings_hash TEXT NOT NULL,
+  expires_at    INTEGER NOT NULL,
+  consumed_at   INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_login_captcha_expires ON login_captcha_challenges(expires_at);
+
 CREATE TABLE IF NOT EXISTS minecraft_auth_codes (
   code_hash  TEXT PRIMARY KEY,
   user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

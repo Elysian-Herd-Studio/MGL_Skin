@@ -1,5 +1,7 @@
 import { randomBytes } from 'node:crypto'
+import type { CaptchaSettings } from '../../shared/types/captcha'
 import type { MailSettings, SiteSettings, SiteSettingsView } from '../../shared/types/settings'
+import { CAPTCHA_PROVIDERS, createDefaultCaptchaSettings } from '../../shared/utils/captcha'
 import { createDefaultMailSettings, isValidMailSender, isValidSiteUrl } from '../../shared/utils/settings'
 import { useDatabase } from './db'
 import { findUserById } from './users'
@@ -28,11 +30,15 @@ export function getSiteSessionPassword() {
 
 export function getSiteSettings(): SiteSettings {
   const stored = readSetting('site')
-  if (stored) return JSON.parse(stored) as SiteSettings
+  if (stored) {
+    const settings = JSON.parse(stored) as SiteSettings
+    return { ...settings, captcha: { ...createDefaultCaptchaSettings(), ...settings.captcha } }
+  }
 
   const config = useRuntimeConfig()
   return {
     siteUrl: config.public.siteUrl.replace(/\/+$/, ''),
+    captcha: createDefaultCaptchaSettings(),
     mail: {
       ...createDefaultMailSettings(),
       from: config.mailFrom,
@@ -50,6 +56,11 @@ export function toSiteSettingsView(settings: SiteSettings): SiteSettingsView {
       smtpPassword: '',
       hasApiKey: Boolean(settings.mail.apiKey),
       hasSmtpPassword: Boolean(settings.mail.smtpPassword)
+    },
+    captcha: {
+      ...settings.captcha,
+      secretKey: '',
+      hasSecretKey: Boolean(settings.captcha.secretKey)
     }
   }
 }
@@ -117,11 +128,30 @@ function parseMailSettings(input: unknown, previous?: MailSettings): MailSetting
   return mail
 }
 
+function parseCaptchaSettings(input: unknown, previous?: CaptchaSettings): CaptchaSettings {
+  if (input === undefined) return previous ?? createDefaultCaptchaSettings()
+  const body = settingsObject(input)
+  const provider = CAPTCHA_PROVIDERS.find(value => value.value === body.provider)?.value
+  if (typeof body.enabled !== 'boolean' || !provider) invalidSettings('登录验证码开关或服务商无效')
+
+  const siteKey = settingsText(body.siteKey, 1024)
+  const secretKey = settingsText(body.secretKey, 4096)
+    || (previous?.provider === provider && previous.siteKey === siteKey ? previous.secretKey : '')
+
+  if (/\s/.test(siteKey) || /\s/.test(secretKey)) invalidSettings('验证码密钥不能包含空白字符')
+  if (body.enabled && (!siteKey || !secretKey)) invalidSettings('启用登录验证码前，请填写站点密钥和服务端密钥')
+  return { enabled: body.enabled, provider, siteKey, secretKey }
+}
+
 export function parseSiteSettings(input: unknown, previous?: SiteSettings): SiteSettings {
   const body = settingsObject(input)
   const siteUrl = settingsText(body.siteUrl)
   if (!isValidSiteUrl(siteUrl)) invalidSettings('请填写有效的站点对外地址，不包含查询参数或锚点')
-  return { siteUrl: new URL(siteUrl).href.replace(/\/+$/, ''), mail: parseMailSettings(body.mail, previous?.mail) }
+  return {
+    siteUrl: new URL(siteUrl).href.replace(/\/+$/, ''),
+    mail: parseMailSettings(body.mail, previous?.mail),
+    captcha: parseCaptchaSettings(body.captcha, previous?.captcha)
+  }
 }
 
 export function saveSiteSettings(settings: SiteSettings) {
