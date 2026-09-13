@@ -3,6 +3,7 @@ export type UserRole = 'user' | 'admin'
 export interface UserRecord {
   id: number
   username: string
+  avatarUrl: string | null
   email: string
   passwordHash: string
   emailVerified: boolean
@@ -15,6 +16,7 @@ export interface UserRecord {
 interface UserRow {
   id: number
   username: string
+  avatar_version: string | null
   email: string
   password_hash: string
   email_verified: number
@@ -24,12 +26,14 @@ interface UserRow {
   last_login_at: string | null
 }
 
-const columns = 'id, username, email, password_hash, email_verified, role, session_version, created_at, last_login_at'
+const columns = `id, username, email, password_hash, email_verified, role, session_version, created_at, last_login_at,
+  (SELECT version FROM user_avatars WHERE user_id = users.id) AS avatar_version`
 
 function toUser(row: UserRow): UserRecord {
   return {
     id: row.id,
     username: row.username,
+    avatarUrl: row.avatar_version ? `/api/users/${row.id}/avatar?v=${row.avatar_version}` : null,
     email: row.email,
     passwordHash: row.password_hash,
     emailVerified: row.email_verified === 1,
@@ -81,6 +85,13 @@ export function setUserEmailVerified(id: number, verified: boolean) {
   useDatabase()
     .prepare("UPDATE users SET email_verified = ?, updated_at = datetime('now') WHERE id = ?")
     .run(verified ? 1 : 0, id)
+}
+
+export function setUserUsername(id: number, username: string) {
+  const result = useDatabase()
+    .prepare("UPDATE OR IGNORE users SET username = ?, updated_at = datetime('now') WHERE id = ?")
+    .run(username, id)
+  return result.changes > 0
 }
 
 export function setUserPassword(id: number, passwordHash: string) {

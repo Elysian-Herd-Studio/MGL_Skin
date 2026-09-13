@@ -22,7 +22,12 @@ async function logout() {
       </v-btn>
       <v-menu>
         <template #activator="{ props }">
-          <v-btn v-bind="props" variant="text" prepend-icon="mdi-account" class="ml-2">{{ user?.username }}</v-btn>
+          <v-btn v-bind="props" variant="text" class="ml-2">
+            <template #prepend>
+              <UserAvatar :src="user?.avatarUrl" :name="user?.username" :size="28" />
+            </template>
+            {{ user?.username }}
+          </v-btn>
         </template>
         <v-list>
           <v-list-item to="/account" prepend-icon="mdi-account-details" title="个人资料" />

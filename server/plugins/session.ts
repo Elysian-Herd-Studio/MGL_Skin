@@ -11,6 +11,9 @@ export default defineNitroPlugin(() => {
     if (!current || current.sessionVersion !== user.sessionVersion) {
       await clearUserSession(event)
       delete session.user
+      return
     }
+
+    session.user = toSessionUser(current)
   })
 })

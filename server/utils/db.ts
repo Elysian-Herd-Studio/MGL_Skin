@@ -16,6 +16,13 @@ CREATE TABLE IF NOT EXISTS users (
   last_login_at   TEXT
 );
 
+CREATE TABLE IF NOT EXISTS user_avatars (
+  user_id      INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  content_type TEXT NOT NULL,
+  data         BLOB NOT NULL,
+  version      TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS auth_tokens (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
