@@ -6,7 +6,7 @@ defineProps<{
 </script>
 
 <template>
-  <v-card max-width="440" width="100%" elevation="2">
+  <v-card max-width="440" width="100%">
     <v-card-item>
       <v-card-title class="text-h5">{{ title }}</v-card-title>
       <v-card-subtitle v-if="subtitle">{{ subtitle }}</v-card-subtitle>

@@ -1,3 +1,4 @@
 .v-dialog > .v-overlay__content > .v-card {
   border-radius: 24px;
+  box-shadow: none;
 }

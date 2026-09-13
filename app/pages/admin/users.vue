@@ -74,7 +74,7 @@ async function confirmDelete() {
 
     <FormAlert :message="actionError" type="error" />
 
-    <v-card class="mb-4" elevation="1">
+    <v-card class="mb-4">
       <v-card-text class="d-flex align-center ga-2 flex-wrap">
         <v-text-field
           v-model="searchInput"
@@ -92,7 +92,7 @@ async function confirmDelete() {
       </v-card-text>
     </v-card>
 
-    <v-card elevation="1">
+    <v-card>
       <v-table>
         <thead>
           <tr>

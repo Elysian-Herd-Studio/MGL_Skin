@@ -22,7 +22,8 @@ export default defineNuxtConfig({
           flat: true
         },
         VCard: {
-          rounded: 'xl'
+          rounded: 'xl',
+          elevation: 0
         }
       },
       icons: {
