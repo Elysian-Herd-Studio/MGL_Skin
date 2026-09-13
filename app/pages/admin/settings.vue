@@ -2,7 +2,6 @@
 import type { SiteSettings, SiteSettingsView } from '../../../shared/types/settings'
 import { createDefaultMailSettings, isValidSiteUrl } from '../../../shared/utils/settings'
 
-definePageMeta({ layout: 'admin', middleware: ['admin'] })
 useSeoMeta({ title: '站点设置 · MGL Skin', robots: 'noindex, nofollow' })
 
 const { data, error: loadError, refresh } = await useFetch<SiteSettingsView>('/api/admin/settings')
@@ -54,7 +53,7 @@ async function testEmail() {
 </script>
 
 <template>
-  <div class="admin-settings py-4">
+  <div class="admin-settings">
     <header class="mb-8">
       <h1 class="text-h4 font-weight-bold mb-3">站点设置</h1>
       <p class="text-body-1 text-medium-emphasis">管理对外地址与邮件服务，修改后即时生效。</p>

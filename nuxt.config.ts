@@ -32,11 +32,29 @@ export default defineNuxtConfig({
     },
     vuetifyOptions: {
       theme: {
-        defaultTheme: 'light'
+        defaultTheme: 'system',
+        themes: {
+          light: {
+            colors: {
+              'app-header': '#EEEEEE',
+              'surface-container': '#F5F5F5',
+              'preview-center': '#FFFFFF',
+              'preview-edge': '#F1F0F7'
+            }
+          },
+          dark: {
+            colors: {
+              'app-header': '#1E1E24',
+              'surface-container': '#25252D',
+              'preview-center': '#30303C',
+              'preview-edge': '#1B1B24'
+            }
+          }
+        }
       },
       defaults: {
         VAppBar: {
-          color: 'grey-lighten-3',
+          color: 'app-header',
           flat: true
         },
         VBtn: {

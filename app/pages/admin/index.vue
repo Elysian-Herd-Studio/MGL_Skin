@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { AdminOverview } from '../../../shared/types/settings'
 
-definePageMeta({ layout: 'admin', middleware: ['admin'] })
 useSeoMeta({ title: '控制台 · MGL Skin', robots: 'noindex, nofollow' })
 
 const { user } = useUserSession()
@@ -18,7 +17,7 @@ const mailService = computed(() => data.value
 </script>
 
 <template>
-  <div class="py-4">
+  <div>
     <header class="mb-8">
       <h1 class="text-h4 font-weight-bold mb-3">控制台</h1>
       <p class="text-body-1 text-medium-emphasis">{{ user?.username }}，在这里管理站点、用户和邮件服务。</p>
@@ -35,7 +34,7 @@ const mailService = computed(() => data.value
       <v-row class="mb-4">
         <v-col v-for="item in statistics" :key="item.title" cols="12" sm="6" lg="3">
           <v-skeleton-loader v-if="pending" type="list-item-avatar-two-line" class="rounded-xl" />
-          <v-card v-else color="grey-lighten-4">
+          <v-card v-else color="surface-container">
             <v-card-text class="d-flex align-center ga-4 pa-6">
               <v-avatar color="primary" variant="tonal" rounded="xl" size="48">
                 <v-icon :icon="item.icon" />

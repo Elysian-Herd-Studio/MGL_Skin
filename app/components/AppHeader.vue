@@ -1,5 +1,15 @@
 <script setup lang="ts">
+import { THEME_MODES, type ThemeMode } from '../composables/useThemeMode'
+
 const { loggedIn, user, clear } = useUserSession()
+const themeMode = useThemeMode()
+const themeOptions: Record<ThemeMode, { label: string, icon: string }> = {
+  light: { label: '浅色', icon: 'mdi-weather-sunny' },
+  dark: { label: '深色', icon: 'mdi-weather-night' },
+  system: { label: '跟随系统', icon: 'mdi-monitor' }
+}
+const nextThemeMode = computed(() => THEME_MODES[(THEME_MODES.indexOf(themeMode.value) + 1) % THEME_MODES.length] ?? 'system')
+const themeButtonLabel = computed(() => `当前主题：${themeOptions[themeMode.value].label}，点击切换为${themeOptions[nextThemeMode.value].label}`)
 
 async function logout() {
   await clear()
@@ -9,9 +19,20 @@ async function logout() {
 
 <template>
   <v-app-bar density="comfortable" class="app-header">
-    <v-app-bar-title class="ms-0">
-      <NuxtLink to="/" class="text-decoration-none">MGL Skin</NuxtLink>
-    </v-app-bar-title>
+    <div class="app-header__brand">
+      <v-app-bar-title class="ms-0">
+        <NuxtLink to="/" class="text-decoration-none">MGL Skin</NuxtLink>
+      </v-app-bar-title>
+      <v-btn
+        type="button"
+        variant="text"
+        size="small"
+        :icon="themeOptions[themeMode].icon"
+        :aria-label="themeButtonLabel"
+        :title="themeButtonLabel"
+        @click="themeMode = nextThemeMode"
+      />
+    </div>
 
     <v-spacer />
 
@@ -53,6 +74,13 @@ async function logout() {
 .app-header__actions {
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+
+.app-header__brand {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
   gap: 8px;
 }
 </style>

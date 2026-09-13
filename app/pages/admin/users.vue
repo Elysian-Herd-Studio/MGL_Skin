@@ -1,5 +1,4 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'admin', middleware: ['admin'] })
 useSeoMeta({ title: '用户管理 · MGL Skin', robots: 'noindex, nofollow' })
 
 const { user: currentUser } = useUserSession()

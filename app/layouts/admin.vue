@@ -1,25 +1,10 @@
-<script setup lang="ts">
-const { mdAndUp } = useDisplay()
-const drawer = ref(mdAndUp.value)
-</script>
-
 <template>
-  <div>
-    <AppHeader />
-    <v-navigation-drawer v-model="drawer" :permanent="mdAndUp" :temporary="!mdAndUp" width="220">
-      <v-list nav>
-        <v-list-subheader>控制台</v-list-subheader>
-        <v-list-item to="/admin" exact prepend-icon="mdi-view-dashboard-outline" title="站点概览" />
-        <v-list-item to="/admin/users" prepend-icon="mdi-account-multiple" title="用户管理" />
-        <v-list-item to="/admin/settings" prepend-icon="mdi-cog-outline" title="站点设置" />
-        <v-list-item to="/" prepend-icon="mdi-home" title="返回首页" />
-      </v-list>
-    </v-navigation-drawer>
-    <v-main>
-      <v-container class="site-container">
-        <v-btn v-if="!mdAndUp" variant="tonal" prepend-icon="mdi-menu" class="mb-4" @click="drawer = !drawer">控制台导航</v-btn>
-        <slot />
-      </v-container>
-    </v-main>
+  <div class="py-4">
+    <nav aria-label="控制台导航" class="d-flex flex-wrap ga-2 mb-6">
+      <v-btn to="/admin" exact variant="text" color="primary" prepend-icon="mdi-view-dashboard-outline">站点概览</v-btn>
+      <v-btn to="/admin/users" variant="text" color="primary" prepend-icon="mdi-account-multiple">用户管理</v-btn>
+      <v-btn to="/admin/settings" variant="text" color="primary" prepend-icon="mdi-cog-outline">站点设置</v-btn>
+    </nav>
+    <slot />
   </div>
 </template>

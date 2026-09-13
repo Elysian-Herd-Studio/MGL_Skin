@@ -74,7 +74,7 @@ onBeforeUnmount(() => {
   aspect-ratio: 5 / 4;
   overflow: hidden;
   border-radius: 24px;
-  background: radial-gradient(ellipse at 50% 35%, #fff 0%, #f1f0f7 100%);
+  background: radial-gradient(ellipse at 50% 35%, rgb(var(--v-theme-preview-center)) 0%, rgb(var(--v-theme-preview-edge)) 100%);
 }
 
 .pony-thumbnail img {
