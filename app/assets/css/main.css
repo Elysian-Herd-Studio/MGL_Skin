@@ -11,6 +11,13 @@
   box-shadow: none;
 }
 
+.v-field--variant-filled > .v-field__outline::before,
+.v-field--variant-filled > .v-field__outline::after,
+.v-field--variant-underlined > .v-field__outline::before,
+.v-field--variant-underlined > .v-field__outline::after {
+  content: none;
+}
+
 .page-enter-active,
 .page-leave-active,
 .layout-enter-active,

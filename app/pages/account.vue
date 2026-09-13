@@ -103,7 +103,7 @@ async function logout() {
 </script>
 
 <template>
-  <v-card max-width="720" class="mx-auto">
+  <v-card max-width="720" class="mx-auto bg-transparent">
     <v-card-item>
       <v-card-title>个人资料</v-card-title>
       <v-card-subtitle>管理头像与账户信息</v-card-subtitle>
@@ -180,7 +180,7 @@ async function logout() {
 
       <v-divider class="my-6" />
 
-      <v-list lines="two">
+      <v-list lines="two" class="bg-transparent">
         <v-list-item title="邮箱" :subtitle="user?.email" prepend-icon="mdi-email" />
         <v-list-item
           title="角色"

@@ -63,6 +63,9 @@ export default defineNuxtConfig({
         VCard: {
           rounded: 'xl',
           elevation: 0
+        },
+        VField: {
+          rounded: 'xl'
         }
       },
       icons: {
