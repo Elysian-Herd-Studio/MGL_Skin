@@ -2,6 +2,15 @@
 import { THEME_MODES, type ThemeMode } from '../composables/useThemeMode'
 
 const { loggedIn, user, clear } = useUserSession()
+const route = useRoute()
+const activeItems = computed(() => ({
+  home: route.path === '/',
+  admin: route.path === '/admin' || route.path.startsWith('/admin/'),
+  account: route.path === '/account',
+  skins: route.path === '/my-skins',
+  login: route.query.auth === 'login',
+  register: route.query.auth === 'register'
+}))
 const themeMode = useThemeMode()
 const themeOptions: Record<ThemeMode, { label: string, icon: string }> = {
   light: { label: '浅色', icon: 'mdi-weather-sunny' },
@@ -38,8 +47,19 @@ async function logout() {
 
     <div class="app-header__actions">
       <template v-if="loggedIn">
-        <v-btn to="/" variant="text" prepend-icon="mdi-home">首页</v-btn>
-        <v-btn v-if="user?.role === 'admin'" to="/admin" variant="text" prepend-icon="mdi-view-dashboard-outline">
+        <v-btn
+          to="/"
+          variant="text"
+          :active="activeItems.home"
+          :prepend-icon="activeItems.home ? 'mdi-home' : 'mdi-home-outline'"
+        >首页</v-btn>
+        <v-btn
+          v-if="user?.role === 'admin'"
+          to="/admin"
+          variant="text"
+          :active="activeItems.admin"
+          :prepend-icon="activeItems.admin ? 'mdi-view-dashboard' : 'mdi-view-dashboard-outline'"
+        >
           控制台
         </v-btn>
         <v-menu>
@@ -52,16 +72,36 @@ async function logout() {
             </v-btn>
           </template>
           <v-list>
-            <v-list-item to="/account" prepend-icon="mdi-account-details" title="个人资料" />
-            <v-list-item to="/my-skins" prepend-icon="mdi-image-multiple-outline" title="我的皮肤" />
-            <v-list-item prepend-icon="mdi-logout" title="退出登录" @click="logout" />
+            <v-list-item
+              to="/account"
+              title="个人资料"
+              :active="activeItems.account"
+              :prepend-icon="activeItems.account ? 'mdi-account-details' : 'mdi-account-details-outline'"
+            />
+            <v-list-item
+              to="/my-skins"
+              title="我的皮肤"
+              :active="activeItems.skins"
+              :prepend-icon="activeItems.skins ? 'mdi-image-multiple' : 'mdi-image-multiple-outline'"
+            />
+            <v-list-item prepend-icon="mdi-account-arrow-left-outline" title="退出登录" @click="logout" />
           </v-list>
         </v-menu>
       </template>
 
       <template v-else>
-        <v-btn to="/?auth=login" :active="false" variant="text" prepend-icon="mdi-login">登录</v-btn>
-        <v-btn to="/?auth=register" :active="false" variant="text" prepend-icon="mdi-account-plus">注册</v-btn>
+        <v-btn
+          to="/?auth=login"
+          variant="text"
+          :active="activeItems.login"
+          :prepend-icon="activeItems.login ? 'mdi-account-arrow-right' : 'mdi-account-arrow-right-outline'"
+        >登录</v-btn>
+        <v-btn
+          to="/?auth=register"
+          variant="text"
+          :active="activeItems.register"
+          :prepend-icon="activeItems.register ? 'mdi-account-plus' : 'mdi-account-plus-outline'"
+        >注册</v-btn>
       </template>
     </div>
   </v-app-bar>
