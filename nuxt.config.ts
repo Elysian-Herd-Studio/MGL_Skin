@@ -7,6 +7,20 @@ export default defineNuxtConfig({
   },
   modules: ['vuetify-nuxt-module', 'nuxt-auth-utils'],
   css: ['~/assets/css/main.css'],
+  vite: {
+    $server: {
+      build: {
+        rolldownOptions: {
+          makeAbsoluteExternalsRelative: false
+        }
+      }
+    }
+  },
+  nitro: {
+    rollupConfig: {
+      external: ['node:sqlite']
+    }
+  },
   vuetify: {
     moduleOptions: {
       enableRules: false,
