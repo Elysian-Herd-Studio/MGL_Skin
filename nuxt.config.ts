@@ -7,6 +7,10 @@ export default defineNuxtConfig({
   },
   modules: ['vuetify-nuxt-module', 'nuxt-auth-utils'],
   css: ['~/assets/css/main.css'],
+  app: {
+    pageTransition: { name: 'page', mode: 'out-in' },
+    layoutTransition: { name: 'layout', mode: 'out-in' }
+  },
   vite: {
     $server: {
       build: {

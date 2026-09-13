@@ -1,3 +1,7 @@
+.site-app {
+  overflow-x: clip;
+}
+
 .site-container {
   padding-inline: clamp(24px, 4vw, 72px);
 }
@@ -5,4 +9,52 @@
 .v-dialog > .v-overlay__content > .v-card {
   border-radius: 24px;
   box-shadow: none;
+}
+
+.page-enter-active,
+.page-leave-active,
+.layout-enter-active,
+.layout-leave-active {
+  transform-origin: center top;
+  will-change: transform, opacity;
+}
+
+.page-enter-active,
+.layout-enter-active {
+  transition: opacity 260ms ease-out, transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.page-leave-active,
+.layout-leave-active {
+  transition: opacity 180ms ease-in, transform 180ms ease-in;
+}
+
+.page-enter-from,
+.layout-enter-from {
+  opacity: 0;
+  transform: scale(1.04);
+}
+
+.page-enter-to,
+.page-leave-from,
+.layout-enter-to,
+.layout-leave-from {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.page-leave-to,
+.layout-leave-to {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active,
+  .page-leave-active,
+  .layout-enter-active,
+  .layout-leave-active {
+    transition: none;
+    will-change: auto;
+  }
 }
