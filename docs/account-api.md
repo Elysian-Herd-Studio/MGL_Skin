@@ -43,3 +43,17 @@ await fetch('/api/account/avatar', {
 公开返回图片内容及对应的 `Content-Type`，支持 ETag 条件请求。用户不存在或尚未设置头像时返回 `404 AVATAR_NOT_FOUND`。使用会话返回的 `avatarUrl` 可在头像变更后刷新图片缓存。
 
 头像保存在现有 SQLite 数据库的 `user_avatars` 表中，应用正常启动时自动创建，已有账户无需手动迁移。更换头像覆盖旧图片，删除用户时头像随账户删除。
+
+## 游戏内账户信息
+
+以下接口使用 `Authorization: Bearer <token>`，令牌由 Minecraft 登录授权流程签发，仅返回令牌所属账户的信息。令牌缺失、失效或过期时返回 `401`。响应均设置 `Cache-Control: private, no-store`。
+
+`GET /api/auth/minecraft/profile` 返回当前名称和头像状态：
+
+```json
+{ "username": "current_name", "hasAvatar": true }
+```
+
+`GET /api/auth/minecraft/avatar` 返回 `128 × 128` 的 PNG 头像。服务端使用 `sharp` 读取已上传的 PNG、JPEG 或 WebP，按图片方向旋转后居中裁剪，保留透明通道。输入图片上限为 16,777,216 像素；无头像时返回 `404 AVATAR_NOT_FOUND`，图片损坏或超出像素上限时返回 `422 INVALID_AVATAR`。
+
+模组的“编辑用户信息”打开网站 `/account` 页面，浏览器使用自己的登录会话。修改后在游戏账户信息页点击“刷新”，即可读取最新名称和头像。
