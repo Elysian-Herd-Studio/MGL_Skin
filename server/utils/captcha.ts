@@ -36,23 +36,23 @@ function invalidCaptcha(message = '验证码无效或已过期，请重新验证
   throw createError({ statusCode: 403, statusMessage: message, data: { code: 'CAPTCHA_INVALID' } })
 }
 
-export function createLoginCaptchaChallenge(email: string): LoginCaptchaResponse {
-  const settings = getSiteSettings()
+export async function createLoginCaptchaChallenge(email: string): Promise<LoginCaptchaResponse> {
+  const settings = await getSiteSettings()
   if (!settings.captcha.enabled) return { enabled: false }
   ensureCaptchaConfigured(settings)
 
   const now = Date.now()
   const requestId = randomBytes(32).toString('hex')
-  const db = useDatabase()
-  db.prepare('DELETE FROM login_captcha_challenges WHERE expires_at <= ?').run(now)
-  db.prepare(`INSERT INTO login_captcha_challenges (request_hash, email_hash, settings_hash, expires_at)
+  const db = await useDatabase()
+  await db.prepare('DELETE FROM login_captcha_challenges WHERE expires_at <= ?').run(now)
+  await db.prepare(`INSERT INTO login_captcha_challenges (request_hash, email_hash, settings_hash, expires_at)
     VALUES (?, ?, ?, ?)`).run(captchaHash(requestId), captchaHash(email), captchaSettingsHash(settings), now + 5 * 60_000)
 
   return { enabled: true, provider: settings.captcha.provider, siteKey: settings.captcha.siteKey, requestId }
 }
 
 export async function verifyLoginCaptcha(email: string, proof: unknown) {
-  const settings = getSiteSettings()
+  const settings = await getSiteSettings()
   if (!settings.captcha.enabled) return
   ensureCaptchaConfigured(settings)
 
@@ -65,8 +65,8 @@ export async function verifyLoginCaptcha(email: string, proof: unknown) {
   const requestHash = captchaHash(input.requestId)
   const emailHash = captchaHash(email)
   const settingsHash = captchaSettingsHash(settings)
-  const db = useDatabase()
-  const challenge = db.prepare(`SELECT request_hash FROM login_captcha_challenges
+  const db = await useDatabase()
+  const challenge = await db.prepare(`SELECT request_hash FROM login_captcha_challenges
     WHERE request_hash = ? AND email_hash = ? AND settings_hash = ? AND consumed_at IS NULL AND expires_at > ?`)
     .get(requestHash, emailHash, settingsHash, Date.now())
   if (!challenge) invalidCaptcha()
@@ -108,7 +108,7 @@ export async function verifyLoginCaptcha(email: string, proof: unknown) {
   }
 
   const now = Date.now()
-  const consumed = db.prepare(`UPDATE login_captcha_challenges SET consumed_at = ?
+  const consumed = await db.prepare(`UPDATE login_captcha_challenges SET consumed_at = ?
     WHERE request_hash = ? AND email_hash = ? AND settings_hash = ? AND consumed_at IS NULL AND expires_at > ?`)
     .run(now, requestHash, emailHash, settingsHash, now)
   if (!consumed.changes) invalidCaptcha()

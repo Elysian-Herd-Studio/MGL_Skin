@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
 
   const user = await requireCurrentUser(event)
 
-  if (!setUserUsername(user.id, username)) {
+  if (!await setUserUsername(user.id, username)) {
     throw createError({
       statusCode: 409,
       statusMessage: '该用户名已被占用',

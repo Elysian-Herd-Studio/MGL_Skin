@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const result = consumeToken(token, 'password_reset')
+  const result = await consumeToken(token, 'password_reset')
 
   if (!result.ok) {
     throw createError({
@@ -23,8 +23,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  setUserPassword(result.userId, await hashPassword(password))
-  clearTokens(result.userId, 'password_reset')
+  await setUserPassword(result.userId, await hashPassword(password))
+  await clearTokens(result.userId, 'password_reset')
 
   return { ok: true }
 })

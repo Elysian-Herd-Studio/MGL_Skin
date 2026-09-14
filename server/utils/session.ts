@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import type { UserRecord } from './users'
+import type { DatabaseSession } from './db'
 
 export function toSessionUser(user: UserRecord) {
   return {
@@ -12,9 +13,9 @@ export function toSessionUser(user: UserRecord) {
   }
 }
 
-export async function requireCurrentUser(event: H3Event) {
+export async function requireCurrentUser(event: H3Event, database?: DatabaseSession) {
   const { user } = await requireUserSession(event)
-  const current = findUserById(user.id)
+  const current = await findUserById(user.id, database)
 
   if (!current || current.sessionVersion !== user.sessionVersion) {
     await clearUserSession(event)
@@ -45,17 +46,17 @@ export function isAdminEmail(email: string) {
   return list.includes(email.trim().toLowerCase())
 }
 
-export function syncAdminRole(user: UserRecord) {
+export async function syncAdminRole(user: UserRecord) {
   if (user.role !== 'admin' && isAdminEmail(user.email)) {
-    setUserRole(user.id, 'admin')
+    await setUserRole(user.id, 'admin')
     return { ...user, role: 'admin' as const }
   }
 
   return user
 }
 
-export async function requireAdmin(event: H3Event) {
-  const user = await requireCurrentUser(event)
+export async function requireAdmin(event: H3Event, database?: DatabaseSession) {
+  const user = await requireCurrentUser(event, database)
 
   if (user.role !== 'admin') {
     throw createError({

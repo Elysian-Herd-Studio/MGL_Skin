@@ -70,6 +70,8 @@ const mailService = computed(() => data.value
               <dl class="admin-overview__details text-body-2 mb-6">
                 <dt class="text-medium-emphasis">站点地址</dt>
                 <dd>{{ data.siteUrl }}</dd>
+                <dt class="text-medium-emphasis">数据库</dt>
+                <dd>{{ data.database === 'postgresql' ? 'PostgreSQL' : 'SQLite' }}</dd>
                 <dt class="text-medium-emphasis">邮件服务</dt>
                 <dd>{{ mailService }}</dd>
                 <dt class="text-medium-emphasis">发件人</dt>

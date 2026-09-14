@@ -1,4 +1,5 @@
 import type { CaptchaSettings, CaptchaSettingsView } from './captcha'
+import type { DatabaseProvider } from './database'
 
 export interface MailSettings {
   transport: 'api' | 'smtp'
@@ -32,6 +33,7 @@ export interface SiteSettingsView {
 
 export interface SetupStatus {
   initialized: boolean
+  databaseProvider?: DatabaseProvider
 }
 
 export interface AdminOverview {
@@ -39,6 +41,7 @@ export interface AdminOverview {
   admins: number
   unverifiedUsers: number
   presets: number
+  database: DatabaseProvider
   siteUrl: string
   mail: {
     transport: MailSettings['transport']

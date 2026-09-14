@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   enforceRateLimit(event, 'login', 10, 15 * 60, email || 'anonymous')
   await verifyLoginCaptcha(email, body?.captcha)
 
-  const user = findUserByEmail(email)
+  const user = await findUserByEmail(email)
   const valid = user ? await verifyPassword(user.passwordHash, password) : false
 
   if (!user || !valid) {
@@ -25,8 +25,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const current = syncAdminRole(user)
-  recordLogin(current.id)
+  const current = await syncAdminRole(user)
+  await recordLogin(current.id)
 
   await setUserSession(event, {
     user: toSessionUser(current),

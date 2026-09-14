@@ -12,10 +12,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const user = findUserByEmail(email)
+  const user = await findUserByEmail(email)
 
   if (user) {
-    const token = createToken(user.id, 'password_reset')
+    const token = await createToken(user.id, 'password_reset')
     await sendPasswordResetEmail(user, token)
   }
 

@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const limit = Math.min(100, Math.max(1, Number.parseInt(String(query.limit ?? '20'), 10) || 20))
   const search = String(query.q ?? '').trim()
 
-  const { items, total } = listUsers({
+  const { items, total } = await listUsers({
     limit,
     offset: (page - 1) * limit,
     query: search

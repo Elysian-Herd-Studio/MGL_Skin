@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<{ token?: string }>(event)
   const token = String(body?.token ?? '')
 
-  const result = consumeToken(token, 'email_verify')
+  const result = await consumeToken(token, 'email_verify')
 
   if (!result.ok) {
     throw createError({
@@ -14,11 +14,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  setUserEmailVerified(result.userId, true)
+  await setUserEmailVerified(result.userId, true)
 
-  const user = findUserById(result.userId)
+  const user = await findUserById(result.userId)
   if (user) {
-    syncAdminRole(user)
+    await syncAdminRole(user)
   }
 
   return { ok: true }

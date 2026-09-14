@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (usernameExists(username)) {
+  if (await usernameExists(username)) {
     throw createError({
       statusCode: 409,
       statusMessage: '该用户名已被占用',
@@ -38,26 +38,26 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const existing = findUserByEmail(email)
+  const existing = await findUserByEmail(email)
 
   if (existing) {
     if (existing.emailVerified) {
       await sendEmailInUseNotice(existing)
     } else {
-      const token = createToken(existing.id, 'email_verify')
+      const token = await createToken(existing.id, 'email_verify')
       await sendVerificationEmail(existing, token)
     }
 
     return { ok: true, message: '如果该邮箱可用，我们已发送验证邮件' }
   }
 
-  const user = createUser({
+  const user = await createUser({
     username,
     email,
     passwordHash: await hashPassword(password)
   })
 
-  const token = createToken(user.id, 'email_verify')
+  const token = await createToken(user.id, 'email_verify')
   await sendVerificationEmail(user, token)
 
   return { ok: true, message: '如果该邮箱可用，我们已发送验证邮件' }

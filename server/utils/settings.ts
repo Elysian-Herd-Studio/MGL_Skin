@@ -1,35 +1,40 @@
-import { randomBytes } from 'node:crypto'
 import type { CaptchaSettings } from '../../shared/types/captcha'
 import type { MailSettings, SiteSettings, SiteSettingsView } from '../../shared/types/settings'
 import { CAPTCHA_PROVIDERS, createDefaultCaptchaSettings } from '../../shared/utils/captcha'
 import { createDefaultMailSettings, isValidMailSender, isValidSiteUrl } from '../../shared/utils/settings'
-import { useDatabase } from './db'
+import { connectDatabase, useDatabase, type DatabaseSession } from './db'
+import { configuredDatabase, getBootstrapSessionPassword, parseDatabaseSettings, persistDatabaseConfig, readDatabaseConfig } from './database-config'
 import { findUserById } from './users'
 
-function readSetting(key: string) {
-  const row = useDatabase().prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined
+async function readSetting(key: string, database?: DatabaseSession) {
+  const db = database ?? await useDatabase()
+  const row = await db.prepare('SELECT value FROM app_settings WHERE key = ?').get<{ value: string }>(key)
   return row?.value
 }
 
-function writeSetting(key: string, value: string) {
-  useDatabase().prepare('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, value)
+async function writeSetting(key: string, value: string, database?: DatabaseSession) {
+  const db = database ?? await useDatabase()
+  await db.prepare('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, value)
 }
 
-export function isSiteInitialized() {
-  return Boolean(readSetting('initialized_at'))
+export async function isSiteInitialized() {
+  if (!configuredDatabase()) return false
+  return Boolean(await readSetting('initialized_at'))
 }
 
-export function getSiteSessionPassword() {
-  const existing = readSetting('session_password')
+export async function getSiteSessionPassword() {
+  if (!configuredDatabase()) return getBootstrapSessionPassword()
+  const existing = await readSetting('session_password')
   if (existing) return existing
 
-  useDatabase().prepare('INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)')
-    .run('session_password', randomBytes(48).toString('hex'))
-  return readSetting('session_password') as string
+  const db = await useDatabase()
+  await db.prepare('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING')
+    .run('session_password', getBootstrapSessionPassword())
+  return (await readSetting('session_password'))!
 }
 
-export function getSiteSettings(): SiteSettings {
-  const stored = readSetting('site')
+export async function getSiteSettings(): Promise<SiteSettings> {
+  const stored = await readSetting('site')
   if (stored) {
     const settings = JSON.parse(stored) as SiteSettings
     return { ...settings, captcha: { ...createDefaultCaptchaSettings(), ...settings.captcha } }
@@ -154,27 +159,41 @@ export function parseSiteSettings(input: unknown, previous?: SiteSettings): Site
   }
 }
 
-export function saveSiteSettings(settings: SiteSettings) {
-  writeSetting('site', JSON.stringify(settings))
+export async function saveSiteSettings(settings: SiteSettings, database?: DatabaseSession) {
+  await writeSetting('site', JSON.stringify(settings), database)
 }
 
-export function initializeSite(admin: { username: string, email: string, passwordHash: string }, settings: SiteSettings) {
-  const db = useDatabase()
-  let userId: number
-  db.exec('BEGIN IMMEDIATE')
+let initializing = false
+
+export async function initializeSite(admin: { username: string, email: string, passwordHash: string }, settings: SiteSettings, databaseInput: unknown) {
+  if (initializing) {
+    throw createError({ statusCode: 409, statusMessage: '正在初始化，请稍候', data: { code: 'SETUP_IN_PROGRESS' } })
+  }
+  initializing = true
   try {
-    if (isSiteInitialized()) {
+    if (await isSiteInitialized()) {
       throw createError({ statusCode: 409, statusMessage: '站点已完成初始化', data: { code: 'ALREADY_INITIALIZED' } })
     }
-    const result = db.prepare(`INSERT INTO users (username, email, password_hash, email_verified, role, last_login_at)
-      VALUES (?, ?, ?, 1, 'admin', datetime('now'))`).run(admin.username, admin.email, admin.passwordHash)
-    userId = Number(result.lastInsertRowid)
-    saveSiteSettings(settings)
-    writeSetting('initialized_at', new Date().toISOString())
-    db.exec('COMMIT')
-  } catch (cause) {
-    db.exec('ROLLBACK')
-    throw cause
+    const connection = readDatabaseConfig() ?? parseDatabaseSettings(databaseInput)
+    const config = useRuntimeConfig()
+    const sessionPassword = process.env[`${config.nitro?.envPrefix || 'NUXT_'}SESSION_PASSWORD`]
+      || config.session.password || await getSiteSessionPassword()
+    const db = await connectDatabase(connection)
+    return await db.transaction(async transaction => {
+      const initialized = await transaction.prepare(`INSERT INTO app_settings (key, value)
+        VALUES ('initialized_at', ?) ON CONFLICT(key) DO NOTHING RETURNING key`).get(new Date().toISOString())
+      if (!initialized) {
+        throw createError({ statusCode: 409, statusMessage: '目标数据库已完成初始化', data: { code: 'DATABASE_ALREADY_INITIALIZED' } })
+      }
+      const result = await transaction.prepare(`INSERT INTO users (username, email, password_hash, email_verified, role, last_login_at)
+        VALUES (?, ?, ?, 1, 'admin', ${transaction.now}) RETURNING id`).get<{ id: number }>(admin.username, admin.email, admin.passwordHash)
+      await saveSiteSettings(settings, transaction)
+      await writeSetting('session_password', sessionPassword, transaction)
+      const user = (await findUserById(result!.id, transaction))!
+      persistDatabaseConfig(connection)
+      return user
+    })
+  } finally {
+    initializing = false
   }
-  return findUserById(userId)!
 }

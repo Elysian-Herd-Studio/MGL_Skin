@@ -66,20 +66,23 @@ export async function readAvatarUpload(event: H3Event) {
   return { data, contentType, version: createHash('sha256').update(data).digest('hex') }
 }
 
-export function setUserAvatar(id: number, avatar: { data: Buffer, contentType: string, version: string }) {
-  useDatabase().prepare(`
+export async function setUserAvatar(id: number, avatar: { data: Buffer, contentType: string, version: string }) {
+  const db = await useDatabase()
+  await db.prepare(`
     INSERT INTO user_avatars (user_id, content_type, data, version) VALUES (?, ?, ?, ?)
     ON CONFLICT(user_id) DO UPDATE SET
       content_type = excluded.content_type, data = excluded.data, version = excluded.version
   `).run(id, avatar.contentType, avatar.data, avatar.version)
 }
 
-export function findUserAvatar(id: number) {
-  return useDatabase()
+export async function findUserAvatar(id: number) {
+  const db = await useDatabase()
+  return await db
     .prepare('SELECT content_type, data, version FROM user_avatars WHERE user_id = ?')
     .get(id) as AvatarRecord | undefined
 }
 
-export function deleteUserAvatar(id: number) {
-  useDatabase().prepare('DELETE FROM user_avatars WHERE user_id = ?').run(id)
+export async function deleteUserAvatar(id: number) {
+  const db = await useDatabase()
+  await db.prepare('DELETE FROM user_avatars WHERE user_id = ?').run(id)
 }

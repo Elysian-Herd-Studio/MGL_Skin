@@ -2,8 +2,8 @@ import { Resend } from 'resend'
 import { createTransport } from 'nodemailer'
 import type { MailSettings } from '../../shared/types/settings'
 
-function siteUrl() {
-  return getSiteSettings().siteUrl.replace(/\/+$/, '')
+async function siteUrl() {
+  return (await getSiteSettings()).siteUrl.replace(/\/+$/, '')
 }
 
 function escapeHtml(value: string) {
@@ -34,7 +34,8 @@ function shell(title: string, paragraphs: string[], action?: { label: string, ur
 </html>`
 }
 
-async function sendMail(input: { to: string, subject: string, html: string }, settings: MailSettings = getSiteSettings().mail) {
+async function sendMail(input: { to: string, subject: string, html: string }, mailSettings?: MailSettings) {
+  const settings = mailSettings ?? (await getSiteSettings()).mail
   if (!settings.from || (settings.transport === 'api' ? !settings.apiKey : !settings.smtpHost)) {
     throw createError({ statusCode: 503, statusMessage: '邮件服务尚未配置，请联系管理员', data: { code: 'MAIL_NOT_CONFIGURED' } })
   }
@@ -90,8 +91,8 @@ async function sendMail(input: { to: string, subject: string, html: string }, se
   }
 }
 
-export function sendVerificationEmail(user: { username: string, email: string }, token: string) {
-  const url = `${siteUrl()}/verify-email?token=${encodeURIComponent(token)}`
+export async function sendVerificationEmail(user: { username: string, email: string }, token: string) {
+  const url = `${await siteUrl()}/verify-email?token=${encodeURIComponent(token)}`
 
   return sendMail({
     to: user.email,
@@ -104,8 +105,8 @@ export function sendVerificationEmail(user: { username: string, email: string },
   })
 }
 
-export function sendPasswordResetEmail(user: { username: string, email: string }, token: string) {
-  const url = `${siteUrl()}/reset-password?token=${encodeURIComponent(token)}`
+export async function sendPasswordResetEmail(user: { username: string, email: string }, token: string) {
+  const url = `${await siteUrl()}/reset-password?token=${encodeURIComponent(token)}`
 
   return sendMail({
     to: user.email,

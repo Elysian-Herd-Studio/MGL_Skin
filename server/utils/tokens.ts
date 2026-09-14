@@ -1,4 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
+import { databaseTimestamp } from './db'
+import { lockUserForUpdate } from './users'
 
 export type TokenPurpose = 'email_verify' | 'password_reset'
 
@@ -11,20 +13,23 @@ function hashToken(token: string) {
   return createHash('sha256').update(token).digest('hex')
 }
 
-export function createToken(userId: number, purpose: TokenPurpose) {
-  const db = useDatabase()
+export async function createToken(userId: number, purpose: TokenPurpose) {
+  const db = await useDatabase()
   const token = randomBytes(32).toString('base64url')
 
-  db.prepare('DELETE FROM auth_tokens WHERE user_id = ? AND purpose = ?').run(userId, purpose)
-  db.prepare("INSERT INTO auth_tokens (user_id, token_hash, purpose, expires_at) VALUES (?, ?, ?, datetime('now', ?))")
-    .run(userId, hashToken(token), purpose, `+${ttlSeconds[purpose]} seconds`)
+  await db.transaction(async transaction => {
+    await lockUserForUpdate(transaction, userId)
+    await transaction.prepare('DELETE FROM auth_tokens WHERE user_id = ? AND purpose = ?').run(userId, purpose)
+    await transaction.prepare('INSERT INTO auth_tokens (user_id, token_hash, purpose, expires_at) VALUES (?, ?, ?, ?)')
+      .run(userId, hashToken(token), purpose, databaseTimestamp(ttlSeconds[purpose]))
+  })
 
   return token
 }
 
-export function consumeToken(token: string, purpose: TokenPurpose) {
-  const db = useDatabase()
-  const row = db
+export async function consumeToken(token: string, purpose: TokenPurpose) {
+  const db = await useDatabase()
+  const row = await db
     .prepare('SELECT id, user_id, used_at FROM auth_tokens WHERE token_hash = ? AND purpose = ?')
     .get(hashToken(token), purpose) as { id: number, user_id: number, used_at: string | null } | undefined
 
@@ -32,9 +37,9 @@ export function consumeToken(token: string, purpose: TokenPurpose) {
     return { ok: false as const, reason: 'invalid' as const }
   }
 
-  const result = db
-    .prepare("UPDATE auth_tokens SET used_at = datetime('now') WHERE id = ? AND used_at IS NULL AND expires_at > datetime('now')")
-    .run(row.id)
+  const result = await db
+    .prepare(`UPDATE auth_tokens SET used_at = ${db.now} WHERE id = ? AND used_at IS NULL AND expires_at > ?`)
+    .run(row.id, databaseTimestamp())
 
   if (result.changes === 0) {
     return { ok: false as const, reason: 'expired' as const }
@@ -43,6 +48,7 @@ export function consumeToken(token: string, purpose: TokenPurpose) {
   return { ok: true as const, userId: row.user_id }
 }
 
-export function clearTokens(userId: number, purpose: TokenPurpose) {
-  useDatabase().prepare('DELETE FROM auth_tokens WHERE user_id = ? AND purpose = ?').run(userId, purpose)
+export async function clearTokens(userId: number, purpose: TokenPurpose) {
+  const db = await useDatabase()
+  await db.prepare('DELETE FROM auth_tokens WHERE user_id = ? AND purpose = ?').run(userId, purpose)
 }

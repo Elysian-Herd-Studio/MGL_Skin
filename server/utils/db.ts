@@ -1,102 +1,186 @@
+import { Buffer } from 'node:buffer'
 import { mkdirSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
-import { DatabaseSync } from 'node:sqlite'
+import { dirname } from 'node:path'
+import type { DatabaseSync } from 'node:sqlite'
+import postgres from 'postgres'
+import type { DatabaseProvider } from '../../shared/types/database'
+import { configuredDatabase, type DatabaseConfig } from './database-config'
+import { databaseNow, databaseSchema } from './database-schema'
 
-const schema = `
-CREATE TABLE IF NOT EXISTS app_settings (
-  key   TEXT PRIMARY KEY,
-  value TEXT NOT NULL
-);
+type DatabaseValue = string | number | null | Uint8Array
+type DatabaseRow = Record<string, unknown>
 
-CREATE TABLE IF NOT EXISTS users (
-  id              INTEGER PRIMARY KEY AUTOINCREMENT,
-  username        TEXT NOT NULL UNIQUE COLLATE NOCASE,
-  email           TEXT NOT NULL UNIQUE COLLATE NOCASE,
-  password_hash   TEXT NOT NULL,
-  email_verified  INTEGER NOT NULL DEFAULT 0,
-  role            TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','admin')),
-  session_version INTEGER NOT NULL DEFAULT 0,
-  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
-  last_login_at   TEXT
-);
-
-CREATE TABLE IF NOT EXISTS user_avatars (
-  user_id      INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  content_type TEXT NOT NULL,
-  data         BLOB NOT NULL,
-  version      TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS auth_tokens (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  token_hash TEXT NOT NULL UNIQUE,
-  purpose    TEXT NOT NULL CHECK (purpose IN ('email_verify','password_reset')),
-  expires_at TEXT NOT NULL,
-  used_at    TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_auth_tokens_lookup ON auth_tokens(user_id, purpose);
-CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
-
-CREATE TABLE IF NOT EXISTS skin_presets (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  name       TEXT NOT NULL,
-  data       TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_skin_presets_updated ON skin_presets(updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_skin_presets_user_updated ON skin_presets(user_id, updated_at DESC, id DESC);
-
-CREATE TABLE IF NOT EXISTS login_captcha_challenges (
-  request_hash  TEXT PRIMARY KEY,
-  email_hash    TEXT NOT NULL,
-  settings_hash TEXT NOT NULL,
-  expires_at    INTEGER NOT NULL,
-  consumed_at   INTEGER
-);
-
-CREATE INDEX IF NOT EXISTS idx_login_captcha_expires ON login_captcha_challenges(expires_at);
-
-CREATE TABLE IF NOT EXISTS minecraft_auth_codes (
-  code_hash  TEXT PRIMARY KEY,
-  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  expires_at TEXT NOT NULL,
-  used_at    TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS minecraft_tokens (
-  token_hash TEXT PRIMARY KEY,
-  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  expires_at TEXT NOT NULL,
-  revoked_at TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-`
-
-let database: DatabaseSync | undefined
-
-function createDatabase() {
-  const { databasePath } = useRuntimeConfig()
-  const file = resolve(process.cwd(), databasePath)
-  mkdirSync(dirname(file), { recursive: true })
-  const db = new DatabaseSync(file)
-  db.exec('PRAGMA busy_timeout = 5000')
-  db.exec('PRAGMA journal_mode = WAL')
-  db.exec('PRAGMA foreign_keys = ON')
-  db.exec(schema)
-  db.prepare(`INSERT OR IGNORE INTO app_settings (key, value)
-    SELECT 'initialized_at', datetime('now') WHERE EXISTS (SELECT 1 FROM users)`).run()
-  return db
+interface DatabaseStatement {
+  get<T = DatabaseRow>(...values: DatabaseValue[]): Promise<T | undefined>
+  all<T = DatabaseRow>(...values: DatabaseValue[]): Promise<T[]>
+  run(...values: DatabaseValue[]): Promise<{ changes: number }>
 }
 
-export function useDatabase() {
-  database ??= createDatabase()
+export interface DatabaseSession {
+  provider: DatabaseProvider
+  now: string
+  prepare(sql: string): DatabaseStatement
+}
+
+export interface Database extends DatabaseSession {
+  transaction<T>(callback: (db: DatabaseSession) => Promise<T>): Promise<T>
+  close(): Promise<void>
+}
+
+const databases = new Map<string, Promise<Database>>()
+
+function sqliteSession(db: DatabaseSync, execute: <T>(callback: () => T) => Promise<T>): DatabaseSession {
+  return {
+    provider: 'sqlite',
+    now: databaseNow('sqlite'),
+    prepare(sql) {
+      return {
+        get: <T>(...values: DatabaseValue[]) => execute(() => db.prepare(sql).get(...values) as T | undefined),
+        all: <T>(...values: DatabaseValue[]) => execute(() => db.prepare(sql).all(...values) as T[]),
+        run: (...values) => execute(() => ({ changes: Number(db.prepare(sql).run(...values).changes) }))
+      }
+    }
+  }
+}
+
+async function openSQLite(path: string): Promise<Database> {
+  const { DatabaseSync } = await import('node:sqlite')
+  mkdirSync(dirname(path), { recursive: true })
+  const db = new DatabaseSync(path)
+  try {
+    db.exec('PRAGMA busy_timeout = 5000')
+    db.exec('PRAGMA journal_mode = WAL')
+    db.exec('PRAGMA foreign_keys = ON')
+    db.exec(databaseSchema('sqlite'))
+  } catch (cause) {
+    db.close()
+    throw cause
+  }
+
+  let queue = Promise.resolve()
+  function exclusive<T>(callback: () => T | Promise<T>): Promise<T> {
+    const result = queue.then(callback)
+    queue = result.then(() => undefined, () => undefined)
+    return result
+  }
+  const session = sqliteSession(db, async callback => callback())
+  return {
+    ...sqliteSession(db, exclusive),
+    transaction: callback => exclusive(async () => {
+      db.exec('BEGIN IMMEDIATE')
+      try {
+        const result = await callback(session)
+        db.exec('COMMIT')
+        return result
+      } catch (cause) {
+        db.exec('ROLLBACK')
+        throw cause
+      }
+    }),
+    close: () => exclusive(() => db.close())
+  }
+}
+
+function postgresSession(client: postgres.Sql | postgres.TransactionSql): DatabaseSession {
+  return {
+    provider: 'postgresql',
+    now: databaseNow('postgresql'),
+    prepare(sql) {
+      let index = 0
+      const query = sql.replace(/'(?:''|[^'])*'|"(?:""|[^"])*"|\?/g, token => token === '?' ? `$${++index}` : token)
+      const parameters = (values: DatabaseValue[]) => values.map(value => value instanceof Uint8Array ? Buffer.from(value) : value)
+      return {
+        get: async <T>(...values: DatabaseValue[]) => (await client.unsafe<T[]>(query, parameters(values)))[0],
+        all: async <T>(...values: DatabaseValue[]) => Array.from(await client.unsafe<T[]>(query, parameters(values))),
+        run: async (...values) => ({ changes: (await client.unsafe(query, parameters(values))).count })
+      }
+    }
+  }
+}
+
+async function openPostgreSQL(config: Extract<DatabaseConfig, { provider: 'postgresql' }>): Promise<Database> {
+  const client = postgres({
+    host: config.host,
+    port: config.port,
+    database: config.database,
+    username: config.username,
+    password: config.password,
+    ssl: config.ssl ? { rejectUnauthorized: true } : false,
+    max: 10,
+    connect_timeout: 10,
+    idle_timeout: 30,
+    prepare: false,
+    connection: { application_name: 'MGL Skin', statement_timeout: 15000 },
+    onnotice: () => undefined
+  })
+  try {
+    await client.begin(async sql => {
+      await sql.unsafe('SELECT pg_advisory_xact_lock(1397442893, 1)')
+      await sql.unsafe(databaseSchema('postgresql'))
+    })
+  } catch (cause) {
+    await client.end({ timeout: 1 })
+    throw cause
+  }
+  return {
+    ...postgresSession(client),
+    async transaction(callback) {
+      const result = await client.begin(async sql => ({ value: await callback(postgresSession(sql)) }))
+      return result.value
+    },
+    close: () => client.end({ timeout: 5 })
+  }
+}
+
+export async function openDatabase(config: DatabaseConfig) {
+  let db: Database | undefined
+  try {
+    db = config.provider === 'sqlite' ? await openSQLite(config.path) : await openPostgreSQL(config)
+    await db.prepare(`INSERT INTO app_settings (key, value)
+      SELECT 'initialized_at', ${db.now} WHERE EXISTS (SELECT 1 FROM users)
+      ON CONFLICT(key) DO NOTHING`).run()
+    return db
+  } catch {
+    await db?.close()
+    throw createError({
+      statusCode: 503,
+      statusMessage: config.provider === 'postgresql'
+        ? '无法连接或初始化 PostgreSQL，请检查地址、端口、数据库、凭据、SSL 和建表权限'
+        : '无法打开 SQLite 数据库，请检查数据目录的读写权限',
+      data: { code: 'DATABASE_UNAVAILABLE' }
+    })
+  }
+}
+
+export function connectDatabase(config: DatabaseConfig): Promise<Database> {
+  const key = JSON.stringify(config)
+  let database = databases.get(key)
+  if (!database) {
+    database = openDatabase(config).catch(cause => {
+      databases.delete(key)
+      throw cause
+    })
+    databases.set(key, database)
+  }
   return database
+}
+
+export function useDatabase(): Promise<Database> {
+  const config = configuredDatabase()
+  if (!config) throw createError({ statusCode: 503, statusMessage: '请先完成站点初始化', data: { code: 'SETUP_REQUIRED' } })
+  return connectDatabase(config)
+}
+
+export async function closeDatabases() {
+  await Promise.allSettled([...databases.values()].map(async database => (await database).close()))
+  databases.clear()
+}
+
+export function databaseTimestamp(offsetSeconds = 0) {
+  return new Date(Date.now() + offsetSeconds * 1000).toISOString().slice(0, 19).replace('T', ' ')
+}
+
+export function isUniqueConstraintError(cause: unknown) {
+  const error = cause as { code?: string, errcode?: number }
+  return error?.code === '23505' || error?.errcode === 2067 || error?.errcode === 1555
 }

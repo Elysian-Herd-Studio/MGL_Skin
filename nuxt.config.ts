@@ -83,6 +83,7 @@ export default defineNuxtConfig({
     mailFrom: '',
     adminEmails: '',
     databasePath: './.data/mgl.sqlite',
+    databaseConfigPath: '',
     session: {
       password: '',
       name: 'mgl-session',

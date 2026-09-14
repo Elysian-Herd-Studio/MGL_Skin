@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  if (isSiteInitialized()) {
+  if (await isSiteInitialized()) {
     throw createError({ statusCode: 409, statusMessage: '站点已完成初始化', data: { code: 'ALREADY_INITIALIZED' } })
   }
   enforceRateLimit(event, 'setup', 10, 15 * 60)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 415, statusMessage: '请使用 JSON 提交初始化设置' })
   }
 
-  const body = await readBody<{ username?: unknown, email?: unknown, password?: unknown, settings?: unknown }>(event)
+  const body = await readBody<{ username?: unknown, email?: unknown, password?: unknown, settings?: unknown, database?: unknown }>(event)
   const username = typeof body?.username === 'string' ? body.username.trim() : ''
   const email = typeof body?.email === 'string' ? normalizeEmail(body.email) : ''
   const password = typeof body?.password === 'string' ? body.password : ''
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
 
   const settings = parseSiteSettings(body?.settings)
   const passwordHash = await hashPassword(password)
-  const user = initializeSite({ username, email, passwordHash }, settings)
+  const user = await initializeSite({ username, email, passwordHash }, settings, body?.database)
   await replaceUserSession(event, { user: toSessionUser(user), loggedInAt: Date.now() })
   setResponseHeader(event, 'Cache-Control', 'no-store')
   return { initialized: true }

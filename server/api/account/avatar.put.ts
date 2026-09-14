@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
 
   const avatar = await readAvatarUpload(event)
   const user = await requireCurrentUser(event)
-  setUserAvatar(user.id, avatar)
+  await setUserAvatar(user.id, avatar)
 
   return { user: await refreshProfileSession(event) }
 })

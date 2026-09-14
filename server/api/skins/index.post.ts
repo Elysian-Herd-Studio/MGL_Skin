@@ -1,7 +1,8 @@
 import { requireMinecraftUser } from '../../utils/minecraft'
+import { lockUserForUpdate } from '../../utils/users'
 
 export default defineEventHandler(async (event) => {
-  const user = requireMinecraftUser(event)
+  const user = await requireMinecraftUser(event)
   const body = await readBody<{ name?: string, data?: string }>(event)
   const name = String(body?.name ?? '').trim()
   const data = String(body?.data ?? '')
@@ -14,16 +15,19 @@ export default defineEventHandler(async (event) => {
   } catch {
     throw createError({ statusCode: 400, statusMessage: '预设数据不是有效 JSON', data: { code: 'INVALID_PRESET' } })
   }
-  const db = useDatabase()
-  const existing = db.prepare('SELECT id FROM skin_presets WHERE user_id = ? AND name = ?')
-    .get(user.id, name) as { id: number } | undefined
-  if (existing) {
-    db.prepare("UPDATE skin_presets SET data = ?, updated_at = datetime('now') WHERE id = ?")
-      .run(data, existing.id)
-    return { id: existing.id, name }
-  }
-  const result = db.prepare(
-    'INSERT INTO skin_presets (user_id, name, data) VALUES (?, ?, ?)'
-  ).run(user.id, name, data)
-  return { id: Number(result.lastInsertRowid), name }
+  const db = await useDatabase()
+  return db.transaction(async transaction => {
+    await lockUserForUpdate(transaction, user.id)
+    const existing = await transaction.prepare('SELECT id FROM skin_presets WHERE user_id = ? AND name = ?')
+      .get<{ id: number }>(user.id, name)
+    if (existing) {
+      await transaction.prepare(`UPDATE skin_presets SET data = ?, updated_at = ${transaction.now} WHERE id = ?`)
+        .run(data, existing.id)
+      return { id: existing.id, name }
+    }
+    const result = await transaction.prepare(
+      'INSERT INTO skin_presets (user_id, name, data) VALUES (?, ?, ?) RETURNING id'
+    ).get<{ id: number }>(user.id, name, data)
+    return { id: result!.id, name }
+  })
 })

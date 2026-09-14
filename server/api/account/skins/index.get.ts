@@ -13,19 +13,20 @@ export default defineEventHandler(async (event): Promise<SkinPresetPage> => {
   }
 
   const limit = 12
-  const db = useDatabase()
+  const db = await useDatabase()
   const values: (string | number)[] = [user.id]
   let where = 'WHERE skin_presets.user_id = ?'
 
   if (search) {
-    where += ' AND instr(lower(skin_presets.name), lower(?)) > 0'
+    const contains = db.provider === 'sqlite' ? 'instr' : 'strpos'
+    where += ` AND ${contains}(lower(skin_presets.name), lower(?)) > 0`
     values.push(search)
   }
 
-  const { total } = db.prepare(`SELECT COUNT(*) AS total FROM skin_presets ${where}`)
+  const { total } = await db.prepare(`SELECT CAST(COUNT(*) AS INTEGER) AS total FROM skin_presets ${where}`)
     .get(...values) as { total: number }
   const page = Math.min(requestedPage, Math.max(1, Math.ceil(total / limit)))
-  const items = db.prepare(`
+  const items = await db.prepare(`
     SELECT skin_presets.id, skin_presets.name, skin_presets.data,
       skin_presets.created_at, skin_presets.updated_at, users.username
     FROM skin_presets JOIN users ON users.id = skin_presets.user_id

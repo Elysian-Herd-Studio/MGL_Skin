@@ -1,4 +1,7 @@
-export default defineEventHandler((event) => {
+import { readDatabaseConfig } from '../../utils/database-config'
+
+export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'no-store')
-  return { initialized: isSiteInitialized() }
+  const initialized = await isSiteInitialized()
+  return { initialized, databaseProvider: initialized ? undefined : readDatabaseConfig()?.provider }
 })

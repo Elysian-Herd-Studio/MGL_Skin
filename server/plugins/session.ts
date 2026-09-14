@@ -1,7 +1,9 @@
-export default defineNitroPlugin(() => {
+import { configuredDatabase } from '../utils/database-config'
+
+export default defineNitroPlugin(async () => {
   const config = useRuntimeConfig()
   const passwordEnv = `${config.nitro?.envPrefix || 'NUXT_'}SESSION_PASSWORD`
-  process.env[passwordEnv] ||= config.session.password || getSiteSessionPassword()
+  process.env[passwordEnv] ||= config.session.password || await getSiteSessionPassword()
 
   sessionHooks.hook('fetch', async (session, event) => {
     const user = session.user
@@ -10,7 +12,7 @@ export default defineNitroPlugin(() => {
       return
     }
 
-    const current = findUserById(user.id)
+    const current = configuredDatabase() ? await findUserById(user.id) : undefined
 
     if (!current || current.sessionVersion !== user.sessionVersion) {
       await clearUserSession(event)

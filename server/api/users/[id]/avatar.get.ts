@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer'
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const value = getRouterParam(event, 'id') ?? ''
   const id = Number(value)
 
@@ -12,7 +12,7 @@ export default defineEventHandler((event) => {
     })
   }
 
-  const avatar = findUserAvatar(id)
+  const avatar = await findUserAvatar(id)
 
   if (!avatar) {
     throw createError({

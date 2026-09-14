@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SetupStatus } from '../../shared/types/settings'
+import type { DatabaseSettings } from '../../shared/types/database'
 import { createDefaultMailSettings, isValidSiteUrl } from '../../shared/utils/settings'
 import { isValidEmail, isValidPassword, isValidUsername } from '../../shared/utils/validation'
 
@@ -11,6 +12,10 @@ const username = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const database = ref<DatabaseSettings>({
+  provider: 'sqlite',
+  postgresql: { host: 'localhost', port: 5432, database: 'mgl_skin', username: 'postgres', password: '', ssl: false }
+})
 const settings = ref({ siteUrl: useRequestURL().origin, mail: createDefaultMailSettings() })
 const loading = ref(false)
 const error = ref('')
@@ -26,12 +31,19 @@ async function submit() {
   try {
     const result = await $fetch<SetupStatus>('/api/setup', {
       method: 'POST',
-      body: { username: username.value, email: email.value, password: password.value, settings: settings.value },
+      body: {
+        username: username.value,
+        email: email.value,
+        password: password.value,
+        settings: settings.value,
+        database: status.value?.databaseProvider ? undefined : database.value
+      },
       retry: false
     })
     status.value = result
     password.value = ''
     confirmPassword.value = ''
+    database.value.postgresql.password = ''
     settings.value.mail.apiKey = ''
     settings.value.mail.smtpPassword = ''
     await refreshSession()
@@ -41,6 +53,9 @@ async function submit() {
     if (apiErrorCode(cause) === 'ALREADY_INITIALIZED') {
       status.value = { initialized: true }
       await navigateTo('/?auth=login&redirect=/admin', { replace: true })
+    } else {
+      const latestStatus = await $fetch<SetupStatus>('/api/setup/status', { retry: false }).catch(() => null)
+      if (latestStatus) status.value = latestStatus
     }
   } finally {
     loading.value = false
@@ -53,10 +68,21 @@ async function submit() {
     <header class="mb-8">
       <v-chip color="primary" variant="tonal" class="mb-4">首次使用</v-chip>
       <h1 class="text-h4 font-weight-bold mb-3">初始化 MGL Skin</h1>
-      <p class="text-body-1 text-medium-emphasis">创建管理员账户并配置邮件服务，完成后即可开放你的皮肤库。</p>
+      <p class="text-body-1 text-medium-emphasis">选择数据库，创建管理员账户并配置邮件服务，完成后即可开放你的皮肤库。</p>
     </header>
 
     <v-form ref="form" :disabled="loading" @submit.prevent="submit">
+      <v-card class="mb-6">
+        <v-card-text class="pa-6">
+          <h2 class="text-h6 mb-2">数据库</h2>
+          <p class="text-body-2 text-medium-emphasis mb-6">用于保存账户、皮肤和站点设置。</p>
+          <v-alert v-if="status?.databaseProvider" type="info" variant="tonal" rounded="xl">
+            已保存 {{ status.databaseProvider === 'postgresql' ? 'PostgreSQL' : 'SQLite' }} 连接配置，将使用此数据库继续初始化。
+          </v-alert>
+          <DatabaseSettingsForm v-else v-model="database" :disabled="loading" />
+        </v-card-text>
+      </v-card>
+
       <v-card class="mb-6">
         <v-card-text class="pa-6">
           <h2 class="text-h6 mb-2">管理员账户</h2>

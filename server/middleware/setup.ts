@@ -1,6 +1,6 @@
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname.replace(/\/+$/, '').toLowerCase()
-  if (!path.startsWith('/api/') || isSiteInitialized()) return
+  if (!path.startsWith('/api/') || await isSiteInitialized()) return
   if (['/api/setup', '/api/setup/status', '/api/_auth/session'].includes(path)) return
 
   throw createError({
