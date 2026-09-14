@@ -4,11 +4,13 @@ import type { LoginCaptchaChallenge, LoginCaptchaProof } from '../../shared/type
 import { mountCaptchaWidget } from '../utils/captcha'
 
 const props = defineProps<{ challenge: LoginCaptchaChallenge, disabled?: boolean }>()
-const emit = defineEmits<{ verified: [proof: LoginCaptchaProof] }>()
+const emit = defineEmits<{
+  verified: [proof: LoginCaptchaProof]
+  error: [message: string]
+}>()
 const theme = useTheme()
 const container = ref<HTMLElement | null>(null)
 const loading = ref(true)
-const error = ref('')
 const controller = new AbortController()
 let dispose: (() => void) | undefined
 let submitted = false
@@ -21,17 +23,16 @@ onMounted(async () => {
       success: (token) => {
         if (submitted || props.disabled) return
         submitted = true
-        error.value = ''
         emit('verified', { requestId: challenge.requestId, token })
       },
       error: (message) => {
-        if (!submitted) error.value = message
+        if (!submitted) emit('error', message)
       }
     })
     if (controller.signal.aborted) cleanup()
     else dispose = cleanup
   } catch (cause) {
-    if (!controller.signal.aborted) error.value = cause instanceof Error ? cause.message : '验证码组件加载失败，请重试'
+    if (!controller.signal.aborted) emit('error', cause instanceof Error ? cause.message : '验证码组件加载失败，请重试')
   } finally {
     if (!controller.signal.aborted) loading.value = false
   }
@@ -49,7 +50,6 @@ onBeforeUnmount(() => {
 
 <template>
   <div>
-    <FormAlert :message="error" type="error" />
     <div v-if="loading" class="d-flex align-center justify-center ga-3 py-5" role="status">
       <v-progress-circular indeterminate size="24" width="2" color="primary" />
       <span class="text-body-2 text-medium-emphasis">正在加载验证码</span>

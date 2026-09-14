@@ -4,6 +4,8 @@ import type { LoginCaptchaChallenge, LoginCaptchaProof } from '../../shared/type
 defineProps<{ challenge: LoginCaptchaChallenge | null, verifying: boolean, refreshing: boolean, error: string }>()
 const emit = defineEmits<{
   verified: [proof: LoginCaptchaProof]
+  error: [message: string]
+  retry: []
   cancel: []
 }>()
 </script>
@@ -35,10 +37,13 @@ const emit = defineEmits<{
           :challenge="challenge"
           :disabled="verifying"
           @verified="emit('verified', $event)"
+          @error="emit('error', $event)"
         />
         <p v-if="verifying" class="text-body-2 text-medium-emphasis text-center mt-4 mb-0" role="status">正在验证并登录…</p>
       </v-card-text>
-      <v-card-actions class="justify-end px-4 pb-4">
+      <v-card-actions class="px-4 pb-4">
+        <v-btn v-if="error" variant="text" color="primary" :disabled="refreshing || verifying" @click="emit('retry')">重试</v-btn>
+        <v-spacer />
         <v-btn variant="text" :disabled="verifying" @click="emit('cancel')">关闭</v-btn>
       </v-card-actions>
     </v-card>
