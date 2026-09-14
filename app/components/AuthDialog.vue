@@ -3,6 +3,7 @@ import type { AuthView } from '~/composables/useAuthDialog'
 
 const { view, redirect, open, close } = useAuthDialog()
 const { fetch: refreshSession } = useUserSession()
+const toast = useToast()
 
 const meta: Record<AuthView, { title: string, subtitle: string }> = {
   login: { title: '登录', subtitle: '使用邮箱与密码登录' },
@@ -41,6 +42,7 @@ function onAfterLeave() {
 
 async function onSuccess() {
   await refreshSession()
+  toast.success('登录成功')
   await navigateTo(redirect.value)
 }
 </script>

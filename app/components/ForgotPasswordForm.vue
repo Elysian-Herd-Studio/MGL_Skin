@@ -5,24 +5,22 @@ const emit = defineEmits<{
   switch: [view: AuthView]
 }>()
 
+const toast = useToast()
 const email = ref('')
 const loading = ref(false)
-const error = ref('')
-const notice = ref('')
 
 async function submit() {
+  if (loading.value) return
   loading.value = true
-  error.value = ''
-  notice.value = ''
 
   try {
     const result = await $fetch('/api/auth/forgot-password', {
       method: 'POST',
       body: { email: email.value }
     })
-    notice.value = result.message
+    toast.success(result.message)
   } catch (cause) {
-    error.value = apiErrorMessage(cause)
+    toast.error(apiErrorMessage(cause))
   } finally {
     loading.value = false
   }
@@ -30,9 +28,6 @@ async function submit() {
 </script>
 
 <template>
-  <FormAlert :message="error" type="error" />
-  <FormAlert :message="notice" type="success" />
-
   <v-form @submit.prevent="submit">
     <v-text-field
       v-model="email"

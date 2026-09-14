@@ -2,6 +2,7 @@
 definePageMeta({ layout: 'auth' })
 
 const route = useRoute()
+const toast = useToast()
 
 const status = ref<'pending' | 'success' | 'expired' | 'invalid' | 'missing'>('pending')
 const message = ref('')
@@ -20,6 +21,7 @@ onMounted(async () => {
       body: { token }
     })
     status.value = 'success'
+    toast.success('邮箱验证成功')
   } catch (cause) {
     message.value = apiErrorMessage(cause)
     status.value = apiErrorCode(cause) === 'TOKEN_EXPIRED' ? 'expired' : 'invalid'

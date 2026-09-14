@@ -5,6 +5,7 @@ import { createDefaultMailSettings, isValidSiteUrl } from '../../../shared/utils
 
 useSeoMeta({ title: '站点设置 · MGL Skin', robots: 'noindex, nofollow' })
 
+const toast = useToast()
 const { data, error: loadError, refresh } = await useFetch<SiteSettingsView>('/api/admin/settings')
 const form = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(null)
 const settings = ref<SiteSettings>({ siteUrl: '', mail: createDefaultMailSettings(), captcha: createDefaultCaptchaSettings() })
@@ -12,7 +13,6 @@ const saving = ref(false)
 const testing = ref(false)
 const busy = computed(() => saving.value || testing.value)
 const error = ref('')
-const success = ref('')
 
 watch(data, value => {
   if (value) settings.value = {
@@ -25,13 +25,12 @@ watch(data, value => {
 async function save() {
   if (busy.value) return
   error.value = ''
-  success.value = ''
   if (!(await form.value?.validate())?.valid) return
   saving.value = true
 
   try {
     data.value = await $fetch<SiteSettingsView>('/api/admin/settings', { method: 'PUT', body: settings.value, retry: false })
-    success.value = '设置已保存并生效。'
+    toast.success('设置已保存并生效')
   } catch (cause) {
     error.value = apiErrorMessage(cause)
   } finally {
@@ -42,13 +41,12 @@ async function save() {
 async function testEmail() {
   if (busy.value) return
   error.value = ''
-  success.value = ''
   if (!(await form.value?.validate())?.valid) return
   testing.value = true
 
   try {
     const result = await $fetch('/api/admin/settings/test-email', { method: 'POST', body: settings.value, retry: false })
-    success.value = result.message
+    toast.success(result.message)
   } catch (cause) {
     error.value = apiErrorMessage(cause)
   } finally {
@@ -105,7 +103,6 @@ async function testEmail() {
 
       <div aria-live="polite">
         <FormAlert :message="error" type="error" />
-        <FormAlert :message="success" type="success" />
       </div>
       <div class="d-flex flex-wrap align-center ga-3">
         <v-btn type="submit" color="primary" size="large" :loading="saving" :disabled="testing">保存设置</v-btn>

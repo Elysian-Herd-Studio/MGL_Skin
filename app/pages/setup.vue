@@ -22,6 +22,7 @@ const loading = ref(false)
 const error = ref('')
 const status = useState<SetupStatus | null>('setup-status', () => null)
 const { fetch: refreshSession } = useUserSession()
+const toast = useToast()
 
 async function submit() {
   if (loading.value) return
@@ -48,6 +49,7 @@ async function submit() {
     settings.value.mail.apiKey = ''
     settings.value.mail.smtpPassword = ''
     await refreshSession()
+    toast.success('站点初始化完成')
     await navigateTo('/admin', { replace: true })
   } catch (cause) {
     error.value = apiErrorMessage(cause)

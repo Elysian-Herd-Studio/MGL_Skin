@@ -26,7 +26,6 @@ const emit = defineEmits<{
         <v-card-title id="login-captcha-title" class="text-h5">安全验证</v-card-title>
       </v-card-item>
       <v-card-text class="pt-4">
-        <FormAlert :message="error" type="error" />
         <div v-if="refreshing" class="d-flex align-center justify-center ga-3 py-5" role="status">
           <v-progress-circular indeterminate size="24" width="2" color="primary" />
           <span class="text-body-2 text-medium-emphasis">正在准备新的验证码</span>

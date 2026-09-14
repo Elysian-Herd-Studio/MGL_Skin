@@ -2,6 +2,7 @@
 useSeoMeta({ title: '用户管理 · MGL Skin', robots: 'noindex, nofollow' })
 
 const { user: currentUser } = useUserSession()
+const toast = useToast()
 
 const limit = 20
 const searchInput = ref('')
@@ -39,6 +40,7 @@ async function patchUser(id: number, payload: { role?: 'user' | 'admin', emailVe
 
   try {
     await $fetch(`/api/admin/users/${id}`, { method: 'PATCH', body: payload })
+    toast.success(payload.role ? '用户角色已更新' : '邮箱验证状态已更新')
     await refresh()
   } catch (cause) {
     actionError.value = apiErrorMessage(cause)
@@ -59,6 +61,7 @@ async function confirmDelete() {
   try {
     await $fetch(`/api/admin/users/${deleteTarget.value.id}`, { method: 'DELETE' })
     deleteTarget.value = null
+    toast.success('用户已删除')
     await refresh()
   } catch (cause) {
     actionError.value = apiErrorMessage(cause)

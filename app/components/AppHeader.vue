@@ -2,6 +2,8 @@
 import { THEME_MODES, type ThemeMode } from '../composables/useThemeMode'
 
 const { loggedIn, user, clear } = useUserSession()
+const toast = useToast()
+const loggingOut = ref(false)
 const route = useRoute()
 const activeItems = computed(() => ({
   home: route.path === '/',
@@ -21,8 +23,17 @@ const nextThemeMode = computed(() => THEME_MODES[(THEME_MODES.indexOf(themeMode.
 const themeButtonLabel = computed(() => `当前主题：${themeOptions[themeMode.value].label}，点击切换为${themeOptions[nextThemeMode.value].label}`)
 
 async function logout() {
-  await clear()
-  await navigateTo('/')
+  if (loggingOut.value) return
+  loggingOut.value = true
+  try {
+    await clear()
+    toast.success('已退出登录')
+    await navigateTo('/')
+  } catch (cause) {
+    toast.error(apiErrorMessage(cause, '退出登录失败，请重试'))
+  } finally {
+    loggingOut.value = false
+  }
 }
 </script>
 
@@ -84,7 +95,7 @@ async function logout() {
               :active="activeItems.skins"
               :prepend-icon="activeItems.skins ? 'mdi-image-multiple' : 'mdi-image-multiple-outline'"
             />
-            <v-list-item prepend-icon="mdi-account-arrow-left-outline" title="退出登录" @click="logout" />
+            <v-list-item prepend-icon="mdi-account-arrow-left-outline" title="退出登录" :disabled="loggingOut" @click="logout" />
           </v-list>
         </v-menu>
       </template>

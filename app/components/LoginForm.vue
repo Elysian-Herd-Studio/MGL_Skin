@@ -4,6 +4,7 @@ import type { LoginCaptchaChallenge, LoginCaptchaProof, LoginCaptchaResponse } f
 import { isValidEmail } from '../../shared/utils/validation'
 
 const props = withDefaults(defineProps<{ active?: boolean }>(), { active: true })
+const toast = useToast()
 
 const emit = defineEmits<{
   success: []
@@ -18,8 +19,6 @@ const password = ref('')
 const step = ref<'idle' | 'preparing' | 'challenge' | 'submitting'>('idle')
 const resending = ref(false)
 const loading = computed(() => step.value !== 'idle' || resending.value)
-const error = ref('')
-const notice = ref('')
 const needsVerification = ref(false)
 const challenge = ref<LoginCaptchaChallenge | null>(null)
 const captchaError = ref('')
@@ -59,10 +58,14 @@ async function cancelChallenge() {
   if (props.active) container.value?.querySelector<HTMLButtonElement>('button[type="submit"]')?.focus()
 }
 
+function onCaptchaError(message: string) {
+  if (!props.active || !challenge.value || captchaError.value === message) return
+  captchaError.value = message
+  toast.error(message)
+}
+
 async function submit() {
   if (loading.value || !props.active) return
-  error.value = ''
-  notice.value = ''
   needsVerification.value = false
   if (!(await form.value?.validate())?.valid || loading.value || !props.active) return
 
@@ -97,10 +100,10 @@ async function prepareCaptcha() {
   } catch (cause) {
     if (!isCurrent(controller)) return
     if (challenge.value) {
-      captchaError.value = apiErrorMessage(cause)
+      onCaptchaError(apiErrorMessage(cause))
       step.value = 'challenge'
     } else {
-      error.value = apiErrorMessage(cause)
+      toast.error(apiErrorMessage(cause))
       credentials = null
       step.value = 'idle'
     }
@@ -141,10 +144,10 @@ async function login(captcha?: LoginCaptchaProof) {
       step.value = 'preparing'
       await prepareCaptcha()
     } else if (challenge.value && code !== 'INVALID_CREDENTIALS' && code !== 'EMAIL_NOT_VERIFIED' && code !== 'RATE_LIMITED') {
-      captchaError.value = apiErrorMessage(cause)
+      onCaptchaError(apiErrorMessage(cause))
       step.value = 'challenge'
     } else {
-      error.value = apiErrorMessage(cause)
+      toast.error(apiErrorMessage(cause))
       needsVerification.value = code === 'EMAIL_NOT_VERIFIED'
       credentials = null
       challenge.value = null
@@ -156,8 +159,6 @@ async function login(captcha?: LoginCaptchaProof) {
 async function resend() {
   if (loading.value) return
   resending.value = true
-  notice.value = ''
-  error.value = ''
   const controller = newRequest()
 
   try {
@@ -167,9 +168,9 @@ async function resend() {
       signal: controller.signal,
       retry: false
     })
-    if (isCurrent(controller)) notice.value = result.message
+    if (isCurrent(controller)) toast.success(result.message)
   } catch (cause) {
-    if (isCurrent(controller)) error.value = apiErrorMessage(cause)
+    if (isCurrent(controller)) toast.error(apiErrorMessage(cause))
   } finally {
     resending.value = false
   }
@@ -178,9 +179,6 @@ async function resend() {
 
 <template>
   <div ref="container">
-    <FormAlert :message="error" type="error" />
-    <FormAlert :message="notice" type="success" />
-
     <v-form ref="form" :disabled="loading" @submit.prevent="submit">
       <v-text-field
         v-model="email"
@@ -224,7 +222,7 @@ async function resend() {
       :refreshing="step === 'preparing'"
       :error="captchaError"
       @verified="completeCaptcha"
-      @error="captchaError = $event"
+      @error="onCaptchaError"
       @retry="prepareCaptcha"
       @cancel="cancelChallenge"
     />

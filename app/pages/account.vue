@@ -9,12 +9,12 @@ useSeoMeta({ title: '个人资料 · MGL Skin' })
 type ProfileAction = 'username' | 'avatar' | 'remove-avatar'
 
 const { user, session, clear } = useUserSession()
+const toast = useToast()
 const username = ref(user.value?.username ?? '')
 const avatarInput = ref<HTMLInputElement | null>(null)
 const saving = ref<ProfileAction | null>(null)
 const loggingOut = ref(false)
 const error = ref('')
-const success = ref('')
 const busy = computed(() => saving.value !== null || loggingOut.value)
 const usernameChanged = computed(() => username.value.trim() !== user.value?.username)
 const usernameValid = computed(() => isValidUsername(username.value.trim()))
@@ -29,14 +29,13 @@ watch(() => user.value?.username, (value, previous) => {
 async function updateProfile(action: ProfileAction, request: () => Promise<{ user: User }>, message: string) {
   if (busy.value) return
   error.value = ''
-  success.value = ''
   saving.value = action
 
   try {
     const { user: updated } = await request()
     if (session.value) session.value = { ...session.value, user: updated }
     if (action === 'username') username.value = updated.username
-    success.value = message
+    toast.success(message)
   } catch (cause) {
     error.value = apiErrorMessage(cause)
   } finally {
@@ -59,7 +58,6 @@ async function uploadAvatar(event: Event) {
   input.value = ''
   if (!file || busy.value) return
   error.value = ''
-  success.value = ''
 
   if (!AVATAR_MIME_TYPES.includes(file.type)) {
     error.value = '头像仅支持 PNG、JPEG 或 WebP 图片'
@@ -88,14 +86,14 @@ async function removeAvatar() {
 async function logout() {
   if (busy.value) return
   error.value = ''
-  success.value = ''
   loggingOut.value = true
 
   try {
     await clear()
+    toast.success('已退出登录')
     await navigateTo('/')
   } catch (cause) {
-    error.value = apiErrorMessage(cause)
+    toast.error(apiErrorMessage(cause, '退出登录失败，请重试'))
   } finally {
     loggingOut.value = false
   }
@@ -112,7 +110,6 @@ async function logout() {
     <v-card-text>
       <div aria-live="polite">
         <FormAlert :message="error" type="error" />
-        <FormAlert :message="success" type="success" />
       </div>
 
       <div class="d-flex flex-wrap align-center ga-5 my-4">

@@ -11,6 +11,7 @@ type SkinAction = {
 }
 
 const { user } = useUserSession()
+const toast = useToast()
 const searchInput = ref<string | null>('')
 const appliedSearch = ref('')
 const page = ref(1)
@@ -18,7 +19,6 @@ const action = ref<SkinAction | null>(null)
 const nameInput = ref('')
 const busy = ref(false)
 const actionError = ref('')
-const success = ref('')
 const query = computed(() => ({ page: page.value, q: appliedSearch.value }))
 
 const { data, pending, error, refresh } = await useFetch<SkinPresetPage>('/api/account/skins', {
@@ -70,7 +70,6 @@ function openAction(type: SkinAction['type'], preset: SkinPreset) {
   action.value = { type, preset: { id: preset.id, name: preset.name } }
   nameInput.value = preset.name
   actionError.value = ''
-  success.value = ''
 }
 
 function closeAction() {
@@ -97,7 +96,7 @@ async function submitAction() {
     }
 
     clearNuxtData(key => key === 'skin-library' || key === `skin-preset:${target.preset.id}`)
-    success.value = target.type === 'rename' ? '皮肤名称已更新' : '皮肤已删除'
+    toast.success(target.type === 'rename' ? '皮肤名称已更新' : '皮肤已删除')
     action.value = null
     await refresh()
   } catch (cause) {
@@ -139,10 +138,6 @@ async function submitAction() {
         </span>
       </form>
     </header>
-
-    <div aria-live="polite">
-      <FormAlert :message="success" type="success" />
-    </div>
 
     <v-row v-if="pending" aria-label="正在加载我的皮肤">
       <v-col v-for="item in 8" :key="item" cols="12" sm="6" md="4" lg="3">

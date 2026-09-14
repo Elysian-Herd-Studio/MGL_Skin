@@ -2,6 +2,7 @@
 definePageMeta({ layout: 'auth' })
 
 const route = useRoute()
+const toast = useToast()
 const token = typeof route.query.token === 'string' ? route.query.token : ''
 
 const password = ref('')
@@ -26,6 +27,7 @@ async function submit() {
       body: { token, password: password.value }
     })
     done.value = true
+    toast.success('密码已重置')
   } catch (cause) {
     error.value = apiErrorMessage(cause)
   } finally {

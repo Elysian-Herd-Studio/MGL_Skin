@@ -1,4 +1,5 @@
 <template>
+  <AppToast />
   <v-app class="site-app">
     <NuxtRouteAnnouncer />
     <NuxtLoadingIndicator color="#c4b5fd" :height="3" :throttle="0" />

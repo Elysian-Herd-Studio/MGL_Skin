@@ -26,17 +26,19 @@ export default defineNuxtPlugin({
       nuxtApp.hook('vuetify:ready', (vuetify) => {
         const stopModeWatch = watch(mode, value => {
           preferenceCookie.value = value
-          void vuetify.theme.change(value, false)
+          if (!nuxtApp.isHydrating) void vuetify.theme.change(value, false)
         }, { flush: 'sync' })
         const stopResolvedWatch = watch(vuetify.theme.name, value => {
           if (value === 'light' || value === 'dark') resolvedCookie.value = value
         }, { flush: 'sync' })
 
-        nuxtApp.hook('app:mounted', () => {
+        const stopReadyHook = nuxtApp.hooks.hookOnce('app:suspense:resolve', async () => {
+          await nextTick()
           void vuetify.theme.change(mode.value, false)
           resolvedCookie.value = vuetify.theme.name.value === 'dark' ? 'dark' : 'light'
         })
         nuxtApp.vueApp.onUnmount(() => {
+          stopReadyHook()
           stopModeWatch()
           stopResolvedWatch()
         })

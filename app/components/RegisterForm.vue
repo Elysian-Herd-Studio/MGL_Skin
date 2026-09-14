@@ -5,19 +5,19 @@ const emit = defineEmits<{
   switch: [view: AuthView]
 }>()
 
+const toast = useToast()
 const username = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const loading = ref(false)
-const error = ref('')
 const done = ref(false)
 
 async function submit() {
-  error.value = ''
+  if (loading.value) return
 
   if (password.value !== confirmPassword.value) {
-    error.value = '两次输入的密码不一致'
+    toast.error('两次输入的密码不一致')
     return
   }
 
@@ -34,8 +34,9 @@ async function submit() {
     })
 
     done.value = true
+    toast.success('注册请求已受理。如果该邮箱可用，请查收验证邮件并点击链接完成验证。')
   } catch (cause) {
-    error.value = apiErrorMessage(cause)
+    toast.error(apiErrorMessage(cause))
   } finally {
     loading.value = false
   }
@@ -43,16 +44,9 @@ async function submit() {
 </script>
 
 <template>
-  <FormAlert :message="error" type="error" />
-
-  <template v-if="done">
-    <v-alert type="success" variant="tonal">
-      注册请求已受理。如果该邮箱可用，我们已经发送了一封验证邮件，请查收并点击其中的链接完成验证。
-    </v-alert>
-    <v-btn color="primary" block size="large" class="mt-4" @click="emit('switch', 'login')">
-      前往登录
-    </v-btn>
-  </template>
+  <v-btn v-if="done" color="primary" block size="large" @click="emit('switch', 'login')">
+    前往登录
+  </v-btn>
 
   <template v-else>
     <v-form @submit.prevent="submit">
