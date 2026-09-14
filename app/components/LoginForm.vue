@@ -224,7 +224,6 @@ async function resend() {
       :refreshing="step === 'preparing'"
       :error="captchaError"
       @verified="completeCaptcha"
-      @retry="prepareCaptcha"
       @cancel="cancelChallenge"
     />
   </div>

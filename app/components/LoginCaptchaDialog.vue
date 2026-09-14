@@ -4,7 +4,6 @@ import type { LoginCaptchaChallenge, LoginCaptchaProof } from '../../shared/type
 defineProps<{ challenge: LoginCaptchaChallenge | null, verifying: boolean, refreshing: boolean, error: string }>()
 const emit = defineEmits<{
   verified: [proof: LoginCaptchaProof]
-  retry: []
   cancel: []
 }>()
 </script>
@@ -23,7 +22,6 @@ const emit = defineEmits<{
     <v-card>
       <v-card-item>
         <v-card-title id="login-captcha-title" class="text-h5">安全验证</v-card-title>
-        <v-card-subtitle>完成验证后将自动继续登录</v-card-subtitle>
       </v-card-item>
       <v-card-text class="pt-4">
         <FormAlert :message="error" type="error" />
@@ -40,12 +38,8 @@ const emit = defineEmits<{
         />
         <p v-if="verifying" class="text-body-2 text-medium-emphasis text-center mt-4 mb-0" role="status">正在验证并登录…</p>
       </v-card-text>
-      <v-card-actions class="px-4 pb-4">
-        <v-btn variant="text" :disabled="verifying" @click="emit('cancel')">返回登录</v-btn>
-        <v-spacer />
-        <v-btn variant="tonal" color="primary" :loading="refreshing || verifying" :disabled="refreshing || verifying" @click="emit('retry')">
-          重新验证
-        </v-btn>
+      <v-card-actions class="justify-end px-4 pb-4">
+        <v-btn variant="text" :disabled="verifying" @click="emit('cancel')">关闭</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

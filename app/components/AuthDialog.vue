@@ -79,8 +79,8 @@ async function onSuccess() {
 }
 
 .auth-dialog__card--receded {
-  transform: translateY(-16px) scale(0.9);
-  opacity: 0.45;
+  transform: scale(0.94);
+  opacity: 0.8;
 }
 
 @media (prefers-reduced-motion: reduce) {
