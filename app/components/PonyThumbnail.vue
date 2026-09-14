@@ -63,8 +63,11 @@ onBeforeUnmount(() => {
   <div ref="container" class="pony-thumbnail" :aria-busy="!source && !failed">
     <img v-if="source" :src="source" :alt="`${name}的预览图`" width="480" height="384" decoding="async">
     <div v-else class="pony-thumbnail__placeholder text-medium-emphasis">
-      <v-icon :icon="failed ? 'mdi-image-off-outline' : 'mdi-image-outline'" size="32" />
-      <span class="text-caption">{{ failed ? '预览暂不可用' : '正在准备预览' }}</span>
+      <template v-if="failed">
+        <v-icon icon="mdi-image-off-outline" size="32" />
+        <span class="text-caption">预览暂不可用</span>
+      </template>
+      <v-progress-circular v-else indeterminate color="primary" size="32" width="3" aria-label="正在准备预览" />
     </div>
   </div>
 </template>

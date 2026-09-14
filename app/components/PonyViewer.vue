@@ -127,10 +127,7 @@ onBeforeUnmount(() => {
         @keydown.home.prevent="viewer?.reset()"
       />
       <div v-if="status !== 'ready'" class="pony-viewer__message" role="status">
-        <template v-if="status === 'loading'">
-          <v-progress-circular indeterminate color="primary" size="32" width="3" />
-          <span class="text-body-2 text-medium-emphasis">正在加载预览…</span>
-        </template>
+        <v-progress-circular v-if="status === 'loading'" indeterminate color="primary" size="32" width="3" aria-label="正在加载预览" />
         <template v-else>
           <v-icon icon="mdi-cube-off-outline" size="40" class="text-medium-emphasis" />
           <span class="text-body-2">{{ config ? '暂时无法显示 3D 预览' : '该预设的数据无法解析' }}</span>
