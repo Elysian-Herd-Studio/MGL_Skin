@@ -58,6 +58,9 @@ export default defineNuxtConfig({
         }
       },
       defaults: {
+        VAlert: {
+          rounded: 'xl'
+        },
         VAppBar: {
           color: 'app-header',
           flat: true

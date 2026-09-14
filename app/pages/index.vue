@@ -95,7 +95,7 @@ const presets = computed(() => (data.value?.items ?? []).map(item => ({
       </v-col>
     </v-row>
 
-    <v-alert v-else-if="error" type="error" variant="tonal" rounded="lg">
+    <v-alert v-else-if="error" type="error" variant="tonal">
       <div class="d-flex flex-wrap align-center justify-space-between ga-3">
         <span>预设加载失败，请稍后重试。</span>
         <v-btn variant="text" prepend-icon="mdi-refresh" @click="refresh()">重新加载</v-btn>

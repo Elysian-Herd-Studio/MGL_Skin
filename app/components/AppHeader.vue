@@ -15,7 +15,7 @@ const themeMode = useThemeMode()
 const themeOptions: Record<ThemeMode, { label: string, icon: string }> = {
   light: { label: '浅色', icon: 'mdi-weather-sunny' },
   dark: { label: '深色', icon: 'mdi-weather-night' },
-  system: { label: '跟随系统', icon: 'mdi-monitor' }
+  system: { label: '跟随系统', icon: 'mdi-theme-light-dark' }
 }
 const nextThemeMode = computed(() => THEME_MODES[(THEME_MODES.indexOf(themeMode.value) + 1) % THEME_MODES.length] ?? 'system')
 const themeButtonLabel = computed(() => `当前主题：${themeOptions[themeMode.value].label}，点击切换为${themeOptions[nextThemeMode.value].label}`)
