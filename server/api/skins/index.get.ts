@@ -1,7 +1,8 @@
-import type { SkinPreset } from '../../../shared/types/skin'
 import { PONY_KINDS } from '../../../shared/utils/pony'
+import { skinPresetResponse, type SkinPresetRow } from '../../utils/skins'
 
 export default defineEventHandler(async (event) => {
+  setHeader(event, 'Cache-Control', 'no-store')
   const query = getQuery(event)
   const search = typeof query.q === 'string' ? query.q.trim() : ''
   const kind = typeof query.kind === 'string' ? query.kind : ''
@@ -10,7 +11,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: '搜索关键词或过滤条件无效' })
   }
 
-  const conditions: string[] = []
+  const conditions: string[] = ['skin_presets.is_public = 1']
   const values: (string | number)[] = []
   const db = await useDatabase()
 
@@ -33,11 +34,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const rows = await db.prepare(`
-    SELECT skin_presets.id, skin_presets.name, skin_presets.data,
+    SELECT skin_presets.id, skin_presets.name, skin_presets.data, skin_presets.is_public,
       skin_presets.created_at, skin_presets.updated_at, users.username
     FROM skin_presets JOIN users ON users.id = skin_presets.user_id
-    ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
+    WHERE ${conditions.join(' AND ')}
     ORDER BY skin_presets.updated_at DESC, skin_presets.id DESC LIMIT 100
-  `).all(...values) as unknown as SkinPreset[]
-  return { items: rows }
+  `).all<SkinPresetRow>(...values)
+  return { items: rows.map(skinPresetResponse) }
 })

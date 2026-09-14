@@ -95,12 +95,36 @@ async function submitAction() {
       await $fetch(`/api/account/skins/${target.preset.id}`, { method: 'DELETE', retry: false })
     }
 
-    clearNuxtData(key => key === 'skin-library' || key === `skin-preset:${target.preset.id}`)
+    clearPresetCache(target.preset.id)
     toast.success(target.type === 'rename' ? '皮肤名称已更新' : '皮肤已删除')
     action.value = null
     await refresh()
   } catch (cause) {
     actionError.value = apiErrorMessage(cause)
+    if (apiErrorCode(cause) === 'PRESET_NOT_FOUND') await refresh()
+  } finally {
+    busy.value = false
+  }
+}
+
+function clearPresetCache(id: number) {
+  clearNuxtData(key => key === 'skin-library' || key.startsWith(`skin-preset:${id}:`))
+}
+
+async function toggleVisibility(preset: SkinPreset) {
+  if (busy.value) return
+  busy.value = true
+  try {
+    const updated = await $fetch<{ isPublic: boolean }>(`/api/account/skins/${preset.id}`, {
+      method: 'PATCH',
+      body: { isPublic: !preset.isPublic },
+      retry: false
+    })
+    clearPresetCache(preset.id)
+    toast.success(updated.isPublic ? '预设已公开展示' : '预设已设为不公开')
+    await refresh()
+  } catch (cause) {
+    toast.error(apiErrorMessage(cause))
     if (apiErrorCode(cause) === 'PRESET_NOT_FOUND') await refresh()
   } finally {
     busy.value = false
@@ -156,7 +180,7 @@ async function submitAction() {
       <v-icon :icon="appliedSearch ? 'mdi-magnify-close' : 'mdi-image-multiple-outline'" size="48" class="text-medium-emphasis mb-4" />
       <h2 class="text-h6 mb-2">{{ appliedSearch ? '没有找到匹配的皮肤' : '还没有上传皮肤' }}</h2>
       <p class="text-body-2 text-medium-emphasis mb-0">
-        {{ appliedSearch ? '试试其他关键词，或清除搜索。' : '使用当前账号在游戏内分享预设后，即可在这里管理。' }}
+        {{ appliedSearch ? '试试其他关键词，或清除搜索。' : '使用当前账号在游戏内上传云预设后，即可在这里管理。' }}
       </p>
       <v-btn v-if="appliedSearch" variant="tonal" color="primary" class="mt-4" @click="resetSearch">清除搜索</v-btn>
     </v-sheet>
@@ -168,9 +192,23 @@ async function submitAction() {
             <PonyThumbnail :config="item.config" :name="item.name" />
             <div class="pa-4">
               <h2 class="text-subtitle-1 font-weight-bold text-truncate mb-2" :title="item.name">{{ item.name }}</h2>
+              <v-chip size="small" :color="item.isPublic ? 'primary' : undefined" class="mb-2">
+                {{ item.isPublic ? '公开展示' : '仅自己可见' }}
+              </v-chip>
               <p class="text-body-2 text-medium-emphasis mb-0">更新于 {{ formatDate(item.updated_at) }}</p>
             </div>
           </v-card>
+          <div class="px-3 pt-3">
+            <v-btn
+              block
+              variant="tonal"
+              size="small"
+              :prepend-icon="item.isPublic ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+              :aria-label="`${item.isPublic ? '设为不公开' : '公开展示'}：${item.name}`"
+              :disabled="busy"
+              @click="toggleVisibility(item)"
+            >{{ item.isPublic ? '设为不公开' : '公开展示' }}</v-btn>
+          </div>
           <v-card-actions class="px-3 pb-3">
             <v-btn
               variant="text"

@@ -51,7 +51,14 @@ async function openSQLite(path: string): Promise<Database> {
     db.exec('PRAGMA busy_timeout = 5000')
     db.exec('PRAGMA journal_mode = WAL')
     db.exec('PRAGMA foreign_keys = ON')
+    db.exec('BEGIN IMMEDIATE')
     db.exec(databaseSchema('sqlite'))
+    const columns = db.prepare('PRAGMA table_info(skin_presets)').all()
+    if (!columns.some(column => column.name === 'is_public')) {
+      db.exec('ALTER TABLE skin_presets ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0 CHECK (is_public IN (0, 1))')
+    }
+    db.exec('CREATE INDEX IF NOT EXISTS idx_skin_presets_public_updated ON skin_presets(is_public, updated_at DESC, id DESC)')
+    db.exec('COMMIT')
   } catch (cause) {
     db.close()
     throw cause
@@ -117,6 +124,8 @@ async function openPostgreSQL(config: Extract<DatabaseConfig, { provider: 'postg
     await client.begin(async sql => {
       await sql.unsafe('SELECT pg_advisory_xact_lock(1397442893, 1)')
       await sql.unsafe(databaseSchema('postgresql'))
+      await sql.unsafe('ALTER TABLE skin_presets ADD COLUMN IF NOT EXISTS is_public INTEGER NOT NULL DEFAULT 0 CHECK (is_public IN (0, 1))')
+      await sql.unsafe('CREATE INDEX IF NOT EXISTS idx_skin_presets_public_updated ON skin_presets(is_public, updated_at DESC, id DESC)')
     })
   } catch (cause) {
     await client.end({ timeout: 1 })

@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS skin_presets (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   data TEXT NOT NULL${sqlite ? '' : " CHECK (json_typeof(data::json) = 'object')"},
+  is_public INTEGER NOT NULL DEFAULT 0 CHECK (is_public IN (0, 1)),
   created_at TEXT NOT NULL DEFAULT (${now}),
   updated_at TEXT NOT NULL DEFAULT (${now})
 );

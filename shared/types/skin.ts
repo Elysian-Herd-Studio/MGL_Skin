@@ -3,6 +3,7 @@ export interface SkinPreset {
   name: string
   data: string
   username: string
+  isPublic: boolean
   created_at: string
   updated_at: string
 }

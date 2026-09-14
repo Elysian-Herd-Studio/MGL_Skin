@@ -10,10 +10,10 @@ definePageMeta({
 const route = useRoute()
 const { user } = useUserSession()
 const { data: preset, pending, error, refresh } = await useFetch<SkinPresetDetail>(() => `/api/skins/${route.params.id}`, {
-  key: computed(() => `skin-preset:${route.params.id}`)
+  key: computed(() => `skin-preset:${route.params.id}:${user.value?.id ?? 'guest'}`)
 })
 if (error.value?.statusCode === 404) {
-  throw createError({ statusCode: 404, statusMessage: '预设不存在或已被删除', fatal: true })
+  throw createError({ statusCode: 404, statusMessage: '预设不存在或无权查看', fatal: true })
 }
 
 const config = computed(() => preset.value ? parsePonyConfig(preset.value.data) : null)
@@ -21,7 +21,8 @@ const isOwner = computed(() => Boolean(preset.value && user.value?.id === preset
 
 useSeoMeta({
   title: () => preset.value ? `${preset.value.name} · MGL Skin` : '预设详情 · MGL Skin',
-  description: () => preset.value ? `查看 ${preset.value.username} 分享的「${preset.value.name}」预设的基本信息与动态预览。` : '查看小马预设的基本信息。'
+  description: () => preset.value ? `查看 ${preset.value.username} 上传的「${preset.value.name}」预设的基本信息与动态预览。` : '查看小马预设的基本信息。',
+  robots: () => preset.value?.isPublic ? 'index, follow' : 'noindex, nofollow'
 })
 
 const dateFormat = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Shanghai' })
@@ -34,7 +35,7 @@ function formatDate(value: string) {
 
 <template>
   <div class="py-3">
-    <v-btn to="/" variant="text" prepend-icon="mdi-arrow-left" class="mb-5">返回预设列表</v-btn>
+    <v-btn :to="isOwner ? '/my-skins' : '/'" variant="text" prepend-icon="mdi-arrow-left" class="mb-5">返回预设列表</v-btn>
 
     <v-row v-if="pending" aria-label="正在加载预设详情">
       <v-col cols="12" md="8"><v-skeleton-loader type="image, image, actions" class="rounded-xl" /></v-col>
@@ -57,7 +58,7 @@ function formatDate(value: string) {
         <div class="preset-details pa-1 pa-sm-3">
           <h1 class="text-h4 font-weight-bold mb-4">{{ preset.name }}</h1>
 
-          <div class="d-flex align-center ga-3 mb-6" role="group" aria-label="分享者">
+          <div class="d-flex align-center ga-3 mb-6" role="group" aria-label="上传者">
             <UserAvatar :src="preset.avatarUrl" :name="preset.username" :size="40" class="flex-shrink-0" />
             <span class="text-body-1 font-weight-medium">{{ preset.username }}</span>
           </div>
@@ -65,7 +66,8 @@ function formatDate(value: string) {
           <h2 class="text-subtitle-1 font-weight-bold mb-3">基本信息</h2>
           <dl class="preset-facts text-body-2">
             <dt>预设编号</dt><dd>#{{ preset.id }}</dd>
-            <dt>发布时间</dt><dd>{{ formatDate(preset.created_at) }}</dd>
+            <dt>可见范围</dt><dd>{{ preset.isPublic ? '公开展示' : '仅自己可见' }}</dd>
+            <dt>上传时间</dt><dd>{{ formatDate(preset.created_at) }}</dd>
             <dt>更新时间</dt><dd>{{ formatDate(preset.updated_at) }}</dd>
           </dl>
 

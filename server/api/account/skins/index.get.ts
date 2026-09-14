@@ -1,7 +1,9 @@
-import type { SkinPreset, SkinPresetPage } from '../../../../shared/types/skin'
+import type { SkinPresetPage } from '../../../../shared/types/skin'
+import { requireSkinUser, skinPresetResponse, type SkinPresetRow } from '../../../utils/skins'
 
 export default defineEventHandler(async (event): Promise<SkinPresetPage> => {
-  const user = await requireCurrentUser(event)
+  setHeader(event, 'Cache-Control', 'private, no-store')
+  const user = await requireSkinUser(event)
   const query = getQuery(event)
   const pageValue = query.page ?? '1'
   const requestedPage = Number(pageValue)
@@ -27,13 +29,12 @@ export default defineEventHandler(async (event): Promise<SkinPresetPage> => {
     .get(...values) as { total: number }
   const page = Math.min(requestedPage, Math.max(1, Math.ceil(total / limit)))
   const items = await db.prepare(`
-    SELECT skin_presets.id, skin_presets.name, skin_presets.data,
+    SELECT skin_presets.id, skin_presets.name, skin_presets.data, skin_presets.is_public,
       skin_presets.created_at, skin_presets.updated_at, users.username
     FROM skin_presets JOIN users ON users.id = skin_presets.user_id
     ${where}
     ORDER BY skin_presets.updated_at DESC, skin_presets.id DESC LIMIT ? OFFSET ?
-  `).all(...values, limit, (page - 1) * limit) as unknown as SkinPreset[]
+  `).all<SkinPresetRow>(...values, limit, (page - 1) * limit)
 
-  setHeader(event, 'Cache-Control', 'private, no-store')
-  return { items, total, page, limit }
+  return { items: items.map(skinPresetResponse), total, page, limit }
 })

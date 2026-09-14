@@ -1,5 +1,8 @@
 import { requireMinecraftUser } from '../../utils/minecraft'
 import { lockUserForUpdate } from '../../utils/users'
+import { skinPresetResponse } from '../../utils/skins'
+
+type UploadedPreset = { id: number, name: string, is_public: number }
 
 export default defineEventHandler(async (event) => {
   const user = await requireMinecraftUser(event)
@@ -21,13 +24,14 @@ export default defineEventHandler(async (event) => {
     const existing = await transaction.prepare('SELECT id FROM skin_presets WHERE user_id = ? AND name = ?')
       .get<{ id: number }>(user.id, name)
     if (existing) {
-      await transaction.prepare(`UPDATE skin_presets SET data = ?, updated_at = ${transaction.now} WHERE id = ?`)
-        .run(data, existing.id)
-      return { id: existing.id, name }
+      const updated = await transaction.prepare(`UPDATE skin_presets SET data = ?, updated_at = ${transaction.now}
+        WHERE id = ? AND user_id = ? RETURNING id, name, is_public`)
+        .get<UploadedPreset>(data, existing.id, user.id)
+      return skinPresetResponse(updated!)
     }
     const result = await transaction.prepare(
-      'INSERT INTO skin_presets (user_id, name, data) VALUES (?, ?, ?) RETURNING id'
-    ).get<{ id: number }>(user.id, name, data)
-    return { id: result!.id, name }
+      'INSERT INTO skin_presets (user_id, name, data, is_public) VALUES (?, ?, ?, 0) RETURNING id, name, is_public'
+    ).get<UploadedPreset>(user.id, name, data)
+    return skinPresetResponse(result!)
   })
 })
