@@ -1,15 +1,34 @@
 import { existsSync, linkSync, mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
 import { isIP } from 'node:net'
-import { dirname, resolve } from 'node:path'
+import { basename, dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { PostgreSQLSettings } from '../../shared/types/database'
 
 export type DatabaseConfig = { provider: 'sqlite', path: string }
   | ({ provider: 'postgresql' } & PostgreSQLSettings)
 
-const dataDirectory = resolve(process.cwd(), '.data')
+function findOutputDirectory(directory: string): string | undefined {
+  while (true) {
+    if (basename(directory) === '.output' || basename(directory) === 'output') return directory
+    const parent = dirname(directory)
+    if (parent === directory) return undefined
+    directory = parent
+  }
+}
+
+const workingDirectory = process.cwd()
+const outputDirectory = findOutputDirectory(dirname(fileURLToPath(import.meta.url))) ?? findOutputDirectory(workingDirectory)
+const dataDirectory = resolve(workingDirectory, '.data')
 const defaultSQLitePath = resolve(dataDirectory, 'mgl.sqlite')
-const databaseConfigFile = resolve(dataDirectory, 'database.json')
+const databaseConfigFile = resolve(outputDirectory ? dirname(outputDirectory) : workingDirectory, '.data', 'database.json')
+const legacyDatabaseConfigFiles = [...new Set([
+  resolve(dataDirectory, 'database.json'),
+  ...(outputDirectory ? [
+    resolve(outputDirectory, '.data', 'database.json'),
+    resolve(outputDirectory, 'server', '.data', 'database.json')
+  ] : [])
+])].filter(file => file !== databaseConfigFile)
 
 function invalidDatabaseSettings(message: string): never {
   throw createError({ statusCode: 400, statusMessage: message, data: { code: 'INVALID_DATABASE_SETTINGS' } })
@@ -64,10 +83,10 @@ export function parseDatabaseSettings(input: unknown): DatabaseConfig {
   return invalidDatabaseSettings('请选择 SQLite 或 PostgreSQL')
 }
 
-export function readDatabaseConfig(): DatabaseConfig | undefined {
+function readDatabaseConfigFile(file: string): DatabaseConfig | undefined {
   let content: string
   try {
-    content = readFileSync(databaseConfigFile, 'utf8')
+    content = readFileSync(file, 'utf8')
   } catch (cause) {
     if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return undefined
     throw createError({ statusCode: 503, statusMessage: '无法读取数据库配置，请检查数据目录的权限', data: { code: 'DATABASE_CONFIG_UNAVAILABLE' } })
@@ -77,13 +96,25 @@ export function readDatabaseConfig(): DatabaseConfig | undefined {
     if (saved.version !== 1) throw new Error()
     const connection = saved.connection
     if (connection?.provider === 'sqlite' && typeof connection.path === 'string' && connection.path) {
-      return { provider: 'sqlite', path: resolve(connection.path) }
+      return { provider: 'sqlite', path: resolve(dirname(file), '..', connection.path) }
     }
     if (connection?.provider === 'postgresql') return { provider: 'postgresql', ...parsePostgreSQLSettings(connection) }
     throw new Error()
   } catch {
     throw createError({ statusCode: 503, statusMessage: '数据库配置文件无效，请检查服务端配置', data: { code: 'DATABASE_CONFIG_INVALID' } })
   }
+}
+
+export function readDatabaseConfig(): DatabaseConfig | undefined {
+  const saved = readDatabaseConfigFile(databaseConfigFile)
+  if (saved) return saved
+  for (const file of legacyDatabaseConfigFiles) {
+    const connection = readDatabaseConfigFile(file)
+    if (!connection) continue
+    createPrivateFile(databaseConfigFile, JSON.stringify({ version: 1, connection }, null, 2))
+    return readDatabaseConfigFile(databaseConfigFile)
+  }
+  return undefined
 }
 
 export function configuredDatabase(): DatabaseConfig | undefined {
