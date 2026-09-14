@@ -35,21 +35,11 @@ export async function getSiteSessionPassword() {
 
 export async function getSiteSettings(): Promise<SiteSettings> {
   const stored = await readSetting('site')
-  if (stored) {
-    const settings = JSON.parse(stored) as SiteSettings
-    return { ...settings, captcha: { ...createDefaultCaptchaSettings(), ...settings.captcha } }
+  if (!stored) {
+    throw createError({ statusCode: 503, statusMessage: '请先完成站点初始化', data: { code: 'SETUP_REQUIRED' } })
   }
-
-  const config = useRuntimeConfig()
-  return {
-    siteUrl: config.public.siteUrl.replace(/\/+$/, ''),
-    captcha: createDefaultCaptchaSettings(),
-    mail: {
-      ...createDefaultMailSettings(),
-      from: config.mailFrom,
-      apiKey: config.resendApiKey
-    }
-  }
+  const settings = JSON.parse(stored) as SiteSettings
+  return { ...settings, captcha: { ...createDefaultCaptchaSettings(), ...settings.captcha } }
 }
 
 export function toSiteSettingsView(settings: SiteSettings): SiteSettingsView {
@@ -175,9 +165,7 @@ export async function initializeSite(admin: { username: string, email: string, p
       throw createError({ statusCode: 409, statusMessage: '站点已完成初始化', data: { code: 'ALREADY_INITIALIZED' } })
     }
     const connection = readDatabaseConfig() ?? parseDatabaseSettings(databaseInput)
-    const config = useRuntimeConfig()
-    const sessionPassword = process.env[`${config.nitro?.envPrefix || 'NUXT_'}SESSION_PASSWORD`]
-      || config.session.password || await getSiteSessionPassword()
+    const sessionPassword = await getSiteSessionPassword()
     const db = await connectDatabase(connection)
     return await db.transaction(async transaction => {
       const initialized = await transaction.prepare(`INSERT INTO app_settings (key, value)

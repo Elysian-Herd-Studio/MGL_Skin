@@ -16,10 +16,5 @@ export default defineEventHandler(async (event) => {
 
   await setUserEmailVerified(result.userId, true)
 
-  const user = await findUserById(result.userId)
-  if (user) {
-    await syncAdminRole(user)
-  }
-
   return { ok: true }
 })

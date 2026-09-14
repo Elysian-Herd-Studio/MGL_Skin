@@ -21,9 +21,20 @@ const required = (value: unknown) => Boolean(String(value ?? '').trim()) || '此
       class="mb-2"
     />
 
-    <p v-if="model.provider === 'sqlite'" class="text-body-2 text-medium-emphasis">
-      数据保存在本机文件中，无需单独部署数据库。
-    </p>
+    <template v-if="model.provider === 'sqlite'">
+      <v-text-field
+        v-model="model.sqlite.path"
+        label="数据文件路径"
+        placeholder="./.data/mgl.sqlite"
+        hint="生产环境请使用位于构建产物之外的可写绝对路径。"
+        persistent-hint
+        autocomplete="off"
+        maxlength="1024"
+        :rules="[required]"
+        :disabled="disabled"
+        required
+      />
+    </template>
 
     <template v-else>
       <p class="text-body-2 text-medium-emphasis mb-6">请先创建数据库，并使用拥有建表权限的账户连接。完成初始化时会自动创建所需的数据表。</p>

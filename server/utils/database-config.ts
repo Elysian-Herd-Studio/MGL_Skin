@@ -7,6 +7,10 @@ import type { PostgreSQLSettings } from '../../shared/types/database'
 export type DatabaseConfig = { provider: 'sqlite', path: string }
   | ({ provider: 'postgresql' } & PostgreSQLSettings)
 
+const dataDirectory = resolve(process.cwd(), '.data')
+const defaultSQLitePath = resolve(dataDirectory, 'mgl.sqlite')
+const databaseConfigFile = resolve(dataDirectory, 'database.json')
+
 function invalidDatabaseSettings(message: string): never {
   throw createError({ statusCode: 400, statusMessage: message, data: { code: 'INVALID_DATABASE_SETTINGS' } })
 }
@@ -43,18 +47,19 @@ function parsePostgreSQLSettings(input: unknown): PostgreSQLSettings {
   }
 }
 
-function sqlitePath() {
-  return resolve(process.cwd(), useRuntimeConfig().databasePath)
-}
-
-function databaseConfigPath() {
-  return resolve(useRuntimeConfig().databaseConfigPath || resolve(dirname(sqlitePath()), 'database.json'))
+function parseSQLiteSettings(input: unknown): string {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) invalidDatabaseSettings('请填写 SQLite 数据文件路径')
+  const path = (input as Record<string, unknown>).path
+  if (typeof path !== 'string' || !path.trim() || path.length > 1024 || path.includes('\0')) {
+    invalidDatabaseSettings('SQLite 数据文件路径无效')
+  }
+  return resolve(process.cwd(), path.trim())
 }
 
 export function parseDatabaseSettings(input: unknown): DatabaseConfig {
   if (!input || typeof input !== 'object' || Array.isArray(input)) invalidDatabaseSettings('请选择数据库类型')
   const body = input as Record<string, unknown>
-  if (body.provider === 'sqlite') return { provider: 'sqlite', path: sqlitePath() }
+  if (body.provider === 'sqlite') return { provider: 'sqlite', path: parseSQLiteSettings(body.sqlite) }
   if (body.provider === 'postgresql') return { provider: 'postgresql', ...parsePostgreSQLSettings(body.postgresql) }
   return invalidDatabaseSettings('请选择 SQLite 或 PostgreSQL')
 }
@@ -62,7 +67,7 @@ export function parseDatabaseSettings(input: unknown): DatabaseConfig {
 export function readDatabaseConfig(): DatabaseConfig | undefined {
   let content: string
   try {
-    content = readFileSync(databaseConfigPath(), 'utf8')
+    content = readFileSync(databaseConfigFile, 'utf8')
   } catch (cause) {
     if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return undefined
     throw createError({ statusCode: 503, statusMessage: '无法读取数据库配置，请检查数据目录的权限', data: { code: 'DATABASE_CONFIG_UNAVAILABLE' } })
@@ -84,7 +89,7 @@ export function readDatabaseConfig(): DatabaseConfig | undefined {
 export function configuredDatabase(): DatabaseConfig | undefined {
   const saved = readDatabaseConfig()
   if (saved) return saved
-  const path = sqlitePath()
+  const path = defaultSQLitePath
   try {
     statSync(path)
     return { provider: 'sqlite', path }
@@ -112,14 +117,14 @@ function createPrivateFile(file: string, content: string) {
 }
 
 export function persistDatabaseConfig(connection: DatabaseConfig) {
-  createPrivateFile(databaseConfigPath(), JSON.stringify({ version: 1, connection }, null, 2))
+  createPrivateFile(databaseConfigFile, JSON.stringify({ version: 1, connection }, null, 2))
   if (JSON.stringify(readDatabaseConfig()) !== JSON.stringify(connection)) {
     throw createError({ statusCode: 409, statusMessage: '数据库已由另一个初始化请求选定，请刷新页面后重试', data: { code: 'DATABASE_ALREADY_CONFIGURED' } })
   }
 }
 
 export function getBootstrapSessionPassword() {
-  const file = resolve(dirname(databaseConfigPath()), 'session.key')
+  const file = resolve(dataDirectory, 'session.key')
   if (!existsSync(file)) createPrivateFile(file, randomBytes(48).toString('hex'))
   try {
     const password = readFileSync(file, 'utf8').trim()

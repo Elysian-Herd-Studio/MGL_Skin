@@ -14,6 +14,7 @@ const password = ref('')
 const confirmPassword = ref('')
 const database = ref<DatabaseSettings>({
   provider: 'sqlite',
+  sqlite: { path: './.data/mgl.sqlite' },
   postgresql: { host: 'localhost', port: 5432, database: 'mgl_skin', username: 'postgres', password: '', ssl: false }
 })
 const settings = ref({ siteUrl: useRequestURL().origin, mail: createDefaultMailSettings() })

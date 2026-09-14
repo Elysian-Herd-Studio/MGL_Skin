@@ -1,9 +1,7 @@
 import { configuredDatabase } from '../utils/database-config'
 
 export default defineNitroPlugin(async () => {
-  const config = useRuntimeConfig()
-  const passwordEnv = `${config.nitro?.envPrefix || 'NUXT_'}SESSION_PASSWORD`
-  process.env[passwordEnv] ||= config.session.password || await getSiteSessionPassword()
+  process.env.NUXT_SESSION_PASSWORD = await getSiteSessionPassword()
 
   sessionHooks.hook('fetch', async (session, event) => {
     const user = session.user

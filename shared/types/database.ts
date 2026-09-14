@@ -9,7 +9,12 @@ export interface PostgreSQLSettings {
   ssl: boolean
 }
 
+export interface SQLiteSettings {
+  path: string
+}
+
 export interface DatabaseSettings {
   provider: DatabaseProvider
+  sqlite: SQLiteSettings
   postgresql: PostgreSQLSettings
 }

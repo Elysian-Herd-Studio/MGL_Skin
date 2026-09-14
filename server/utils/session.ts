@@ -37,24 +37,6 @@ export async function refreshProfileSession(event: H3Event) {
   return user
 }
 
-export function isAdminEmail(email: string) {
-  const list = useRuntimeConfig().adminEmails
-    .split(',')
-    .map(value => value.trim().toLowerCase())
-    .filter(Boolean)
-
-  return list.includes(email.trim().toLowerCase())
-}
-
-export async function syncAdminRole(user: UserRecord) {
-  if (user.role !== 'admin' && isAdminEmail(user.email)) {
-    await setUserRole(user.id, 'admin')
-    return { ...user, role: 'admin' as const }
-  }
-
-  return user
-}
-
 export async function requireAdmin(event: H3Event, database?: DatabaseSession) {
   const user = await requireCurrentUser(event, database)
 

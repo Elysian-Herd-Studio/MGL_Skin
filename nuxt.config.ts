@@ -1,4 +1,9 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { randomBytes } from 'node:crypto'
+
+// 占位值仅为阻止 nuxt-auth-utils 在开发模式下自动生成 .env；运行时会由服务端插件替换为数据库中的会话密钥
+process.env.NUXT_SESSION_PASSWORD ||= randomBytes(32).toString('hex')
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
@@ -79,22 +84,13 @@ export default defineNuxtConfig({
     }
   },
   runtimeConfig: {
-    resendApiKey: '',
-    mailFrom: '',
-    adminEmails: '',
-    databasePath: './.data/mgl.sqlite',
-    databaseConfigPath: '',
     session: {
-      password: '',
       name: 'mgl-session',
       maxAge: 60 * 60 * 24 * 7,
       cookie: {
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production'
       }
-    },
-    public: {
-      siteUrl: 'http://localhost:4300'
     }
   }
 })

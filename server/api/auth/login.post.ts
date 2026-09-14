@@ -25,13 +25,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const current = await syncAdminRole(user)
-  await recordLogin(current.id)
+  await recordLogin(user.id)
 
   await setUserSession(event, {
-    user: toSessionUser(current),
+    user: toSessionUser(user),
     loggedInAt: Date.now()
   })
 
-  return { user: toSessionUser(current) }
+  return { user: toSessionUser(user) }
 })
