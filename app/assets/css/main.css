@@ -1,9 +1,17 @@
 .site-app {
+  --site-gutter: clamp(16px, 4vw, 72px);
+
   overflow-x: clip;
 }
 
 .site-container {
-  padding-inline: clamp(24px, 4vw, 72px);
+  min-width: 0;
+  padding-inline: var(--site-gutter);
+}
+
+.mobile-navigation-open {
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .v-dialog > .v-overlay__content > .v-card {
@@ -54,6 +62,21 @@
 .layout-leave-to {
   opacity: 0;
   transform: scale(0.96);
+}
+
+@media (max-width: 599.98px) {
+  .v-dialog:not(.v-dialog--fullscreen) > .v-overlay__content {
+    width: calc(100% - 32px);
+    max-width: calc(100% - 32px);
+    max-height: calc(100% - 32px);
+    margin: 16px;
+  }
+
+  .v-card-title,
+  .v-card-subtitle {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

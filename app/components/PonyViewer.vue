@@ -136,7 +136,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <div class="pony-viewer__toolbar pa-3">
-      <div class="d-flex ga-1 align-center">
+      <div class="d-flex flex-wrap ga-1 align-center">
         <v-btn
           variant="text"
           size="small"
@@ -201,5 +201,11 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+@media (max-width: 599.98px) {
+  .pony-viewer__stage {
+    height: clamp(240px, 100vw, 420px);
+  }
 }
 </style>

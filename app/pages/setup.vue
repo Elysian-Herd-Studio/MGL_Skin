@@ -76,7 +76,7 @@ async function submit() {
 
     <v-form ref="form" :disabled="loading" @submit.prevent="submit">
       <v-card class="mb-6">
-        <v-card-text class="pa-6">
+        <v-card-text class="pa-4 pa-sm-6">
           <h2 class="text-h6 mb-2">数据库</h2>
           <p class="text-body-2 text-medium-emphasis mb-6">用于保存账户、皮肤和站点设置。</p>
           <v-alert v-if="status?.databaseProvider" type="info" variant="tonal" rounded="xl">
@@ -87,7 +87,7 @@ async function submit() {
       </v-card>
 
       <v-card class="mb-6">
-        <v-card-text class="pa-6">
+        <v-card-text class="pa-4 pa-sm-6">
           <h2 class="text-h6 mb-2">管理员账户</h2>
           <p class="text-body-2 text-medium-emphasis mb-6">使用邮箱与密码登录控制台。此账户无需再次验证邮箱。</p>
           <v-row>
@@ -139,7 +139,7 @@ async function submit() {
       </v-card>
 
       <v-card class="mb-6">
-        <v-card-text class="pa-6">
+        <v-card-text class="pa-4 pa-sm-6">
           <h2 class="text-h6 mb-2">站点与邮件</h2>
           <p class="text-body-2 text-medium-emphasis mb-6">用于发送邮箱验证和密码重置邮件。完成后可在控制台修改配置并发送测试邮件。</p>
           <v-text-field

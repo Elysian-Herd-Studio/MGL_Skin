@@ -176,7 +176,7 @@ async function toggleVisibility(preset: SkinPreset) {
       </div>
     </v-alert>
 
-    <v-sheet v-else-if="!presets.length" class="text-center pa-12" rounded="xl">
+    <v-sheet v-else-if="!presets.length" class="text-center pa-6 pa-sm-12" rounded="xl">
       <v-icon :icon="appliedSearch ? 'mdi-magnify-close' : 'mdi-image-multiple-outline'" size="48" class="text-medium-emphasis mb-4" />
       <h2 class="text-h6 mb-2">{{ appliedSearch ? '没有找到匹配的皮肤' : '还没有上传皮肤' }}</h2>
       <p class="text-body-2 text-medium-emphasis mb-0">
@@ -237,7 +237,6 @@ async function toggleVisibility(preset: SkinPreset) {
       v-if="!error && pageCount > 1"
       v-model="page"
       :length="pageCount"
-      :total-visible="5"
       :disabled="busy || pending"
       size="small"
       class="mt-6"

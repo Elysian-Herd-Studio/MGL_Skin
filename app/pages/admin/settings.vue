@@ -71,7 +71,7 @@ async function testEmail() {
 
     <v-form v-else-if="data" ref="form" :disabled="busy" @submit.prevent="save">
       <v-card class="mb-6">
-        <v-card-text class="pa-6">
+        <v-card-text class="pa-4 pa-sm-6">
           <h2 class="text-h6 mb-4">站点地址</h2>
           <v-text-field
             v-model="settings.siteUrl"
@@ -87,7 +87,7 @@ async function testEmail() {
       </v-card>
 
       <v-card class="mb-6">
-        <v-card-text class="pa-6">
+        <v-card-text class="pa-4 pa-sm-6">
           <h2 class="text-h6 mb-2">邮件发送</h2>
           <p class="text-body-2 text-medium-emphasis mb-6">已保存的密钥和密码不会显示。保留原连接设置并留空凭据时，会沿用已保存的值。</p>
           <MailSettingsForm v-model="settings.mail" :saved="data.mail" :disabled="busy" />
@@ -95,7 +95,7 @@ async function testEmail() {
       </v-card>
 
       <v-card class="mb-6">
-        <v-card-text class="pa-6">
+        <v-card-text class="pa-4 pa-sm-6">
           <h2 class="text-h6 mb-2">登录验证码</h2>
           <CaptchaSettingsForm v-model="settings.captcha" :saved="data.captcha" :disabled="busy" />
         </v-card-text>

@@ -85,7 +85,7 @@ async function confirmDelete() {
           prepend-inner-icon="mdi-magnify"
           density="compact"
           hide-details
-          style="max-width: 320px"
+          class="admin-users__search"
           @keyup.enter="applySearch"
         />
         <v-btn color="primary" variant="tonal" @click="applySearch">搜索</v-btn>
@@ -96,7 +96,7 @@ async function confirmDelete() {
     </v-card>
 
     <v-card>
-      <v-table>
+      <v-table class="admin-users__table">
         <thead>
           <tr>
             <th>用户名</th>
@@ -161,7 +161,7 @@ async function confirmDelete() {
       </v-table>
 
       <v-card-actions v-if="pageCount > 1" class="justify-center">
-        <v-pagination v-model="page" :length="pageCount" :total-visible="7" />
+        <v-pagination v-model="page" :length="pageCount" class="w-100" />
       </v-card-actions>
     </v-card>
 
@@ -180,3 +180,22 @@ async function confirmDelete() {
     </v-dialog>
   </div>
 </template>
+
+<style scoped>
+.admin-users__search {
+  flex: 1 1 240px;
+  min-width: 0;
+  max-width: 320px;
+}
+
+.admin-users__table :deep(table) {
+  min-width: 960px;
+}
+
+@media (max-width: 599.98px) {
+  .admin-users__search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+}
+</style>
