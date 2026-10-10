@@ -15,7 +15,7 @@ const shownView = ref<AuthView | null>(null)
 const captchaActive = ref(false)
 
 watch(view, value => {
-  if (value !== 'login') captchaActive.value = false
+  captchaActive.value = false
   if (value) {
     shownView.value = value
   }
@@ -68,7 +68,7 @@ async function onSuccess() {
       :aria-hidden="captchaActive || undefined"
     >
       <LoginForm v-if="shownView === 'login'" :active="view === 'login'" @captcha="captchaActive = $event" @success="onSuccess" @switch="switchTo" />
-      <RegisterForm v-else-if="shownView === 'register'" @switch="switchTo" />
+      <RegisterForm v-else-if="shownView === 'register'" :active="view === 'register'" @captcha="captchaActive = $event" @switch="switchTo" />
       <ForgotPasswordForm v-else @switch="switchTo" />
     </AuthCard>
   </v-dialog>

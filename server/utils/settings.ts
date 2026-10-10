@@ -127,14 +127,14 @@ function parseCaptchaSettings(input: unknown, previous?: CaptchaSettings): Captc
   if (input === undefined) return previous ?? createDefaultCaptchaSettings()
   const body = settingsObject(input)
   const provider = CAPTCHA_PROVIDERS.find(value => value.value === body.provider)?.value
-  if (typeof body.enabled !== 'boolean' || !provider) invalidSettings('登录验证码开关或服务商无效')
+  if (typeof body.enabled !== 'boolean' || !provider) invalidSettings('人机验证开关或服务商无效')
 
   const siteKey = settingsText(body.siteKey, 1024)
   const secretKey = settingsText(body.secretKey, 4096)
     || (previous?.provider === provider && previous.siteKey === siteKey ? previous.secretKey : '')
 
   if (/\s/.test(siteKey) || /\s/.test(secretKey)) invalidSettings('验证码密钥不能包含空白字符')
-  if (body.enabled && (!siteKey || !secretKey)) invalidSettings('启用登录验证码前，请填写站点密钥和服务端密钥')
+  if (body.enabled && (!siteKey || !secretKey)) invalidSettings('启用人机验证前，请填写站点密钥和服务端密钥')
   return { enabled: body.enabled, provider, siteKey, secretKey }
 }
 

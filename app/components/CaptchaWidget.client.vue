@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { useTheme } from 'vuetify'
-import type { LoginCaptchaChallenge, LoginCaptchaProof } from '../../shared/types/captcha'
+import type { CaptchaChallenge, CaptchaProof } from '../../shared/types/captcha'
 import { mountCaptchaWidget } from '../utils/captcha'
 
-const props = defineProps<{ challenge: LoginCaptchaChallenge, disabled?: boolean }>()
+const props = defineProps<{ challenge: CaptchaChallenge, disabled?: boolean }>()
 const emit = defineEmits<{
-  verified: [proof: LoginCaptchaProof]
+  verified: [proof: CaptchaProof]
   error: [message: string]
 }>()
 const theme = useTheme()

@@ -59,7 +59,7 @@ async function testEmail() {
   <div class="admin-settings">
     <header class="mb-8">
       <h1 class="text-h4 font-weight-bold mb-3">站点设置</h1>
-      <p class="text-body-1 text-medium-emphasis">管理对外地址、邮件服务和登录验证码，修改后即时生效。</p>
+      <p class="text-body-1 text-medium-emphasis">管理对外地址、邮件服务和登录、注册人机验证，修改后即时生效。</p>
     </header>
 
     <v-alert v-if="loadError" type="error" variant="tonal" rounded="xl">
@@ -96,7 +96,7 @@ async function testEmail() {
 
       <v-card class="mb-6">
         <v-card-text class="pa-4 pa-sm-6">
-          <h2 class="text-h6 mb-2">登录验证码</h2>
+          <h2 class="text-h6 mb-2">人机验证</h2>
           <CaptchaSettingsForm v-model="settings.captcha" :saved="data.captcha" :disabled="busy" />
         </v-card-text>
       </v-card>

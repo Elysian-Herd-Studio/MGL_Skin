@@ -53,10 +53,10 @@ async function finishLogin() {
 </script>
 
 <template>
-  <v-container class="py-12">
+  <div class="py-12">
     <v-card max-width="520" class="mx-auto">
       <v-card-title>返回 Magical Land</v-card-title>
       <v-card-text>{{ status }}</v-card-text>
     </v-card>
-  </v-container>
+  </div>
 </template>

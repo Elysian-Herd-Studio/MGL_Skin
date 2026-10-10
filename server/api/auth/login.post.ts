@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   const password = String(body?.password ?? '')
 
   enforceRateLimit(event, 'login', 10, 15 * 60, email || 'anonymous')
-  await verifyLoginCaptcha(email, body?.captcha)
+  await verifyAuthCaptcha(email, body?.captcha, 'login')
 
   const user = await findUserByEmail(email)
   const valid = user ? await verifyPassword(user.passwordHash, password) : false

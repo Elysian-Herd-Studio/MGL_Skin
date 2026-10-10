@@ -18,13 +18,13 @@ function changeProvider() {
   <div>
     <v-switch
       v-model="model.enabled"
-      label="启用登录验证码"
+      label="启用登录和注册人机验证"
       color="primary"
       :disabled="disabled"
       hide-details
       class="mb-4"
     />
-    <p class="text-body-2 text-medium-emphasis mb-4">启用后，用户提交登录信息时会弹出独立的验证窗口，验证通过后继续登录。</p>
+    <p class="text-body-2 text-medium-emphasis mb-4">启用后，用户提交登录或注册信息时会弹出独立的验证窗口，验证通过后继续操作。</p>
 
     <v-expand-transition>
       <div v-if="model.enabled">

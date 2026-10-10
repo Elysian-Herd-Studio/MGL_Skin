@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { LoginCaptchaChallenge, LoginCaptchaProof } from '../../shared/types/captcha'
+import type { CaptchaChallenge, CaptchaProof } from '../../shared/types/captcha'
 
-defineProps<{ challenge: LoginCaptchaChallenge | null, verifying: boolean, refreshing: boolean, error: string }>()
+defineProps<{ challenge: CaptchaChallenge | null, verifying: boolean, refreshing: boolean, error: string }>()
 const emit = defineEmits<{
-  verified: [proof: LoginCaptchaProof]
+  verified: [proof: CaptchaProof]
   error: [message: string]
   retry: []
   cancel: []
@@ -18,12 +18,12 @@ const emit = defineEmits<{
     :close-on-back="false"
     :retain-focus="challenge?.provider === 'turnstile'"
     :capture-focus="false"
-    aria-labelledby="login-captcha-title"
+    aria-labelledby="auth-captcha-title"
     @update:model-value="value => { if (!value && !verifying) emit('cancel') }"
   >
     <v-card>
       <v-card-item>
-        <v-card-title id="login-captcha-title" class="text-h5">安全验证</v-card-title>
+        <v-card-title id="auth-captcha-title" class="text-h5">安全验证</v-card-title>
       </v-card-item>
       <v-card-text class="pt-4">
         <div v-if="refreshing" class="d-flex align-center justify-center ga-3 py-5" role="status">
@@ -38,7 +38,7 @@ const emit = defineEmits<{
           @verified="emit('verified', $event)"
           @error="emit('error', $event)"
         />
-        <p v-if="verifying" class="text-body-2 text-medium-emphasis text-center mt-4 mb-0" role="status">正在验证并登录…</p>
+        <p v-if="verifying" class="text-body-2 text-medium-emphasis text-center mt-4 mb-0" role="status">正在验证并{{ challenge?.action === 'register' ? '注册' : '登录' }}…</p>
       </v-card-text>
       <v-card-actions class="px-4 pb-4">
         <v-btn v-if="error" variant="text" color="primary" :disabled="refreshing || verifying" @click="emit('retry')">重试</v-btn>

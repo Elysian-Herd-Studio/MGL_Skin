@@ -1,5 +1,4 @@
-import type { CaptchaProvider, LoginCaptchaChallenge } from '../../shared/types/captcha'
-import { LOGIN_CAPTCHA_ACTION } from '../../shared/utils/captcha'
+import type { CaptchaProvider, CaptchaChallenge } from '../../shared/types/captcha'
 
 interface WidgetOptions {
   sitekey: string
@@ -121,7 +120,7 @@ function loadCaptchaSdk(provider: CaptchaProvider): Promise<CaptchaSdk> {
 
 export async function mountCaptchaWidget(
   container: HTMLElement,
-  challenge: LoginCaptchaChallenge,
+  challenge: CaptchaChallenge,
   theme: 'light' | 'dark',
   signal: AbortSignal,
   callbacks: { success: (token: string) => void, error: (message: string) => void }
@@ -151,7 +150,7 @@ export async function mountCaptchaWidget(
     const api = sdk as TurnstileSdk
     const id = api.render(container, {
       ...options,
-      action: LOGIN_CAPTCHA_ACTION,
+      action: challenge.action,
       cData: challenge.requestId,
       size: container.clientWidth < 300 ? 'compact' : 'flexible',
       'timeout-callback': options['expired-callback']
@@ -159,10 +158,10 @@ export async function mountCaptchaWidget(
     if (!id) throw new Error('验证码组件加载失败，请重试')
     remove = () => api.remove(id)
   } else {
-    container.id = `login-captcha-${challenge.requestId}`
+    container.id = `auth-captcha-${challenge.requestId}`
     const widget = (sdk as BotFlushSdk).render(container.id, {
       siteKey: challenge.siteKey,
-      action: LOGIN_CAPTCHA_ACTION,
+      action: challenge.action,
       requestId: challenge.requestId,
       callback: options.callback,
       onError: options['error-callback'],

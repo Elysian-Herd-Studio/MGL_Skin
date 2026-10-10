@@ -1,7 +1,5 @@
 import type { CaptchaSettings } from '../types/captcha'
 
-export const LOGIN_CAPTCHA_ACTION = 'login'
-
 export const CAPTCHA_PROVIDERS = [
   { title: 'Google reCAPTCHA v2', value: 'recaptcha' },
   { title: 'BotFlush', value: 'botflush' },

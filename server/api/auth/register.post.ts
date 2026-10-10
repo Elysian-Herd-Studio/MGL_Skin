@@ -1,7 +1,7 @@
 export default defineEventHandler(async (event) => {
   enforceRateLimit(event, 'register', 5, 60 * 60)
 
-  const body = await readBody<{ username?: string, email?: string, password?: string }>(event)
+  const body = await readBody<{ username?: string, email?: string, password?: string, captcha?: unknown }>(event)
   const username = String(body?.username ?? '').trim()
   const email = normalizeEmail(String(body?.email ?? ''))
   const password = String(body?.password ?? '')
@@ -29,6 +29,8 @@ export default defineEventHandler(async (event) => {
       data: { code: 'INVALID_PASSWORD' }
     })
   }
+
+  await verifyAuthCaptcha(email, body?.captcha, 'register')
 
   if (await usernameExists(username)) {
     throw createError({
